@@ -1,0 +1,11 @@
+---
+name: {{ name }}
+description: {{ description }}
+---
+# {{ name }}
+
+This is a new skill. Describe what it does here.
+
+## Tools
+
+- `{{ tool_name }}`: Describe the tool.

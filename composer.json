@@ -1,0 +1,51 @@
+{
+    "name": "anilcancakir/laravel-ai-sdk-skills",
+    "description": "A skill system for Laravel AI SDK agents. Define reusable AI capabilities with SKILL.md files.",
+    "keywords": ["laravel", "ai", "sdk", "skills", "agents", "llm", "tools"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Anilcan Cakir",
+            "email": "anilcan.cakir@gmail.com",
+            "homepage": "https://github.com/anilcancakir"
+        }
+    ],
+    "homepage": "https://github.com/anilcancakir/laravel-ai-sdk-skills",
+    "support": {
+        "issues": "https://github.com/anilcancakir/laravel-ai-sdk-skills/issues",
+        "source": "https://github.com/anilcancakir/laravel-ai-sdk-skills"
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "symfony/yaml": "^7.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.27",
+        "orchestra/testbench": "^9.0|^10.0",
+        "phpunit/phpunit": "^10.5|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "AnilcanCakir\\LaravelAiSdkSkills\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "AnilcanCakir\\LaravelAiSdkSkills\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AnilcanCakir\\LaravelAiSdkSkills\\SkillsServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
