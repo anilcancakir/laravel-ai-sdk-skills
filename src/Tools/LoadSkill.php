@@ -3,9 +3,7 @@
 namespace AnilcanCakir\LaravelAiSdkSkills\Tools;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
-use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
-use Laravel\Ai\Tools\Request;
 
 /**
  * Tool to load a specialized skill.
@@ -40,10 +38,8 @@ class LoadSkill implements Tool
 
     /**
      * Get the JSON schema for the tool's parameters.
-     *
-     * @param  JsonSchema  $schema  The schema instance.
      */
-    public function schema(JsonSchema $schema): array
+    public function schema(): array
     {
         return [
             'type' => 'object',
@@ -60,11 +56,11 @@ class LoadSkill implements Tool
     /**
      * Handle the tool execution.
      *
-     * @param  Request  $request  The tool request instance.
+     * @param  array<string, mixed>  $arguments  The tool arguments.
      */
-    public function handle(Request $request): string
+    public function handle(array $arguments): string
     {
-        $name = $request['name'];
+        $name = $arguments['name'] ?? '';
 
         $this->registry->load($name);
 

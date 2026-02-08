@@ -8,7 +8,6 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use Illuminate\Support\Collection;
-use Laravel\Ai\Tools\Request;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 
@@ -59,7 +58,7 @@ class ListSkillsToolTest extends TestCase
         $tool = new ListSkills($registry);
 
         // Act
-        $result = $tool->handle(new Request([]));
+        $result = $tool->handle([]);
 
         // Assert
         $this->assertStringContainsString('| Name | Description | Triggers | Status |', $result);
@@ -88,7 +87,7 @@ class ListSkillsToolTest extends TestCase
         $tool = new ListSkills($registry);
 
         // Act
-        $result = $tool->handle(new Request([]));
+        $result = $tool->handle([]);
 
         // Assert
         $this->assertStringContainsString('| Name | Description | Triggers | Status |', $result);
@@ -104,8 +103,7 @@ class ListSkillsToolTest extends TestCase
         $this->assertSame('list_skills', $tool->name());
         $this->assertNotEmpty($tool->description());
 
-        $schemaMock = Mockery::mock(\Illuminate\Contracts\JsonSchema\JsonSchema::class);
-        $this->assertIsArray($tool->schema($schemaMock));
-        $this->assertEmpty($tool->schema($schemaMock));
+        $this->assertIsArray($tool->schema());
+        $this->assertEmpty($tool->schema());
     }
 }

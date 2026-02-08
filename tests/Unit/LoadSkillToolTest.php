@@ -7,7 +7,6 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\LoadSkill;
-use Laravel\Ai\Tools\Request;
 use Mockery;
 
 class LoadSkillToolTest extends TestCase
@@ -17,8 +16,7 @@ class LoadSkillToolTest extends TestCase
         $registry = Mockery::mock(SkillRegistry::class);
         $tool = new LoadSkill($registry);
 
-        $schemaMock = Mockery::mock(\Illuminate\Contracts\JsonSchema\JsonSchema::class);
-        $schema = $tool->schema($schemaMock);
+        $schema = $tool->schema();
 
         $this->assertEquals('load_skill', $tool->name());
         $this->assertNotEmpty($tool->description());
@@ -43,10 +41,7 @@ class LoadSkillToolTest extends TestCase
 
         $tool = new LoadSkill($registry);
 
-        // Mock Request
-        $request = new Request(['name' => 'test-skill']);
-
-        $result = $tool->handle($request);
+        $result = $tool->handle(['name' => 'test-skill']);
 
         $this->assertStringContainsString('Skill [Test Skill] loaded', (string) $result);
         $this->assertStringContainsString('Do this.', (string) $result);
@@ -64,9 +59,7 @@ class LoadSkillToolTest extends TestCase
 
         $tool = new LoadSkill($registry);
 
-        $request = new Request(['name' => 'unknown-skill']);
-
-        $result = $tool->handle($request);
+        $result = $tool->handle(['name' => 'unknown-skill']);
 
         $this->assertStringContainsString('Skill [unknown-skill] not found', (string) $result);
         $this->assertFalse($registry->isLoaded('unknown-skill'));

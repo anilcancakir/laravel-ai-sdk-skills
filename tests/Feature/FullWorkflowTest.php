@@ -1,9 +1,7 @@
 <?php
 
 namespace App\Ai\Tools {
-    use Illuminate\Contracts\JsonSchema\JsonSchema;
-    use Laravel\Ai\Contracts\Tool;
-    use Laravel\Ai\Tools\Request;
+    use Laravel\AI\Contracts\Tool;
 
     if (! class_exists('App\Ai\Tools\GitCommit')) {
         class GitCommit implements Tool
@@ -13,17 +11,17 @@ namespace App\Ai\Tools {
                 return 'git_commit';
             }
 
-            public function description(): \Stringable|string
+            public function description(): string
             {
                 return 'Git Commit';
             }
 
-            public function schema(JsonSchema $schema): array
+            public function schema(): array
             {
                 return [];
             }
 
-            public function handle(Request $request): \Stringable|string
+            public function handle(array $arguments): string
             {
                 return 'committed';
             }
@@ -38,17 +36,17 @@ namespace App\Ai\Tools {
                 return 'git_log';
             }
 
-            public function description(): \Stringable|string
+            public function description(): string
             {
                 return 'Git Log';
             }
 
-            public function schema(JsonSchema $schema): array
+            public function schema(): array
             {
                 return [];
             }
 
-            public function handle(Request $request): \Stringable|string
+            public function handle(array $arguments): string
             {
                 return 'logged';
             }
@@ -63,17 +61,17 @@ namespace App\Ai\Tools {
                 return 'search_docs';
             }
 
-            public function description(): \Stringable|string
+            public function description(): string
             {
                 return 'Search Docs';
             }
 
-            public function schema(JsonSchema $schema): array
+            public function schema(): array
             {
                 return [];
             }
 
-            public function handle(Request $request): \Stringable|string
+            public function handle(array $arguments): string
             {
                 return 'found';
             }

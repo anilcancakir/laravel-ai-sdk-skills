@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace AnilcanCakir\LaravelAiSdkSkills\Tools;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
-use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
-use Laravel\Ai\Tools\Request;
 
 /**
  * Tool to list all available AI skills.
@@ -42,10 +40,8 @@ class ListSkills implements Tool
 
     /**
      * Get the JSON schema for the tool's parameters.
-     *
-     * @param  JsonSchema  $schema  The schema instance.
      */
-    public function schema(JsonSchema $schema): array
+    public function schema(): array
     {
         return [];
     }
@@ -53,9 +49,9 @@ class ListSkills implements Tool
     /**
      * Handle the tool execution.
      *
-     * @param  Request  $request  The tool request instance.
+     * @param  array<string, mixed>  $arguments  The tool arguments.
      */
-    public function handle(Request $request): string
+    public function handle(array $arguments): string
     {
         $available = $this->registry->available();
         $loaded = $this->registry->getLoaded();
