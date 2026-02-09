@@ -112,4 +112,29 @@ EOT
         // But mainly we check it returns an array
         $this->assertIsArray($tools);
     }
+
+    public function test_skills_are_not_loaded_when_disabled()
+    {
+        // Arrange
+        config(['skills.enabled' => false]);
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['test-skill'];
+            }
+        };
+
+        // Act
+        $tools = $agent->skillTools();
+        $instructions = $agent->skillInstructions();
+
+        // Assert
+        $this->assertEmpty($tools);
+        $this->assertEmpty($instructions);
+        $this->assertFalse(resolve(SkillRegistry::class)->isLoaded('test-skill'));
+    }
 }

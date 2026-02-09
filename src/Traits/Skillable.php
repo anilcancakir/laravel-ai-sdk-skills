@@ -62,6 +62,10 @@ trait Skillable
      */
     public function skillTools(): array
     {
+        if (! config('skills.enabled', true)) {
+            return [];
+        }
+
         $this->bootSkillsIfNeeded();
 
         $registry = app(SkillRegistry::class);
@@ -84,6 +88,10 @@ trait Skillable
      */
     public function skillInstructions(): string
     {
+        if (! config('skills.enabled', true)) {
+            return '';
+        }
+
         $this->bootSkillsIfNeeded();
 
         return app(SkillRegistry::class)->instructions();
@@ -94,7 +102,7 @@ trait Skillable
      */
     private function bootSkillsIfNeeded(): void
     {
-        if ($this->skillsBooted) {
+        if ($this->skillsBooted || ! config('skills.enabled', true)) {
             return;
         }
 

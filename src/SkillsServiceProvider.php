@@ -20,6 +20,10 @@ class SkillsServiceProvider extends ServiceProvider
             __DIR__.'/../config/skills.php', 'skills'
         );
 
+        if (! config('skills.enabled', true)) {
+            return;
+        }
+
         $this->app->singleton(SkillDiscovery::class, function ($app) {
             return new SkillDiscovery(
                 paths: config('skills.paths', [app_path('Skills')]),
