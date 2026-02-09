@@ -67,6 +67,7 @@ Each skill lives in its own directory with a `SKILL.md` file. The file uses YAML
 ---
 name: doc-writer
 description: Writes technical documentation in a friendly style
+version: 1.0.0
 triggers:
   - write documentation
   - create docs
@@ -74,6 +75,10 @@ triggers:
 tools:
   - App\Ai\Tools\SearchDocs
   - App\Ai\Tools\WriteFile
+mcp:
+  - filesystem
+constraints:
+  - model: gemini-2.0-flash
 ---
 
 # Documentation Writer
@@ -91,8 +96,11 @@ Always start with an introduction explaining what the reader will learn.
 |:------|:---------|:------------|
 | `name` | Yes | Unique identifier for the skill |
 | `description` | Yes | Short explanation shown in skill listings |
+| `version` | No | Semantic version of the skill |
 | `triggers` | No | Keywords that hint when this skill is relevant |
 | `tools` | No | Fully qualified class names of tools this skill provides |
+| `mcp` | No | List of MCP (Model Context Protocol) dependencies |
+| `constraints` | No | List of runtime requirements (e.g. model versions) |
 
 The markdown body becomes the skill's instructions, injected into your agent's context when loaded.
 
@@ -175,7 +183,7 @@ public function skills(): iterable
 
 ## Configuration
 
-After publishing, configure `config/skills.php`:
+After publishing, configure `config/skills.php`. Note that the `enabled` flag can be used to globally disable the skill system (e.g., in specific environments).
 
 ```php
 <?php
@@ -185,6 +193,10 @@ return [
     |--------------------------------------------------------------------------
     | Enable Skills
     |--------------------------------------------------------------------------
+    |
+    | When disabled, the Skillable trait will return empty tools/instructions
+    | and the discovery process will be skipped.
+    |
     */
     'enabled' => true,
 
@@ -232,19 +244,52 @@ Example output from `skills:list`:
 +---------------+----------------------------------+
 ```
 
+## Agent Skills Protocol
+
+The package implements a specialized protocol for LLM interaction, ensuring predictable discovery and canonical instruction formats.
+
+### Tool Naming Convention
+
+All skills-related tools follow a strict `snake_case` naming convention. If you are implementing custom tools for your skills, ensure they implement the `name()` method:
+
+```php
+public function name(): string
+{
+    return 'search_docs';
+}
+```
+
+The core package provides:
+- `list_skills`: Discovery and progressive disclosure
+- `skill`: Dynamic loader (formerly `LoadSkill`)
+
+### Progressive Disclosure
+
+To prevent context window bloat, the package uses progressive disclosure. The `list_skills` tool description dynamically injects metadata about available skills using an XML-wrapped format. This allows the AI to "know" what skills exist without loading their full instructions until needed.
+
+### Canonical Instruction Format
+
+When a skill is loaded (either via `SkillRegistry` or the `skill` tool), instructions are wrapped in a canonical XML tag:
+
+```xml
+<skill name="doc-writer">
+Your instructions here...
+</skill>
+```
+
 ## How It Works
 
 The skill system operates through four components:
 
 1. **Discovery**: `SkillDiscovery` scans configured paths for `SKILL.md` files
-2. **Parsing**: `SkillParser` extracts YAML frontmatter and markdown instructions
-3. **Registry**: `SkillRegistry` manages which skills are loaded for the current request
-4. **Integration**: The `Skillable` trait boots skills when your agent is instantiated
+2. **Parsing**: `SkillParser` extracts YAML frontmatter (including versioning and MCP metadata)
+3. **Registry**: `SkillRegistry` manages loaded skills and wraps them in canonical XML
+4. **Integration**: The `Skillable` trait boots skills and manages config enforcement
 
 Agents also receive two meta-tools:
 
-- **ListSkills**: Shows available skills the agent can load
-- **LoadSkill**: Dynamically loads a skill at runtime
+- **list_skills**: Shows available skills with metadata for progressive disclosure
+- **skill**: Dynamically loads a skill and returns XML-wrapped instructions
 
 This enables agents to discover and load skills on-demand during a conversation.
 
