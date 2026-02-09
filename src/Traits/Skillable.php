@@ -85,8 +85,10 @@ trait Skillable
      * This is optional - only call it if you want to inject skill instructions
      * into your agent's instructions. If you don't call this, skills still work
      * via their tools.
+     *
+     * @param  string|null  $mode  Override the discovery mode ('lite' or 'full'). Defaults to config value.
      */
-    public function skillInstructions(): string
+    public function skillInstructions(?string $mode = null): string
     {
         if (! config('skills.enabled', true)) {
             return '';
@@ -94,7 +96,7 @@ trait Skillable
 
         $this->bootSkillsIfNeeded();
 
-        return app(SkillRegistry::class)->instructions();
+        return app(SkillRegistry::class)->instructions($mode);
     }
 
     /**

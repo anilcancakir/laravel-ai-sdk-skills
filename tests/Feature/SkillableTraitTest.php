@@ -115,6 +115,54 @@ EOT
         $this->assertIsArray($tools);
     }
 
+    public function test_skill_instructions_mode_override()
+    {
+        // Arrange: Config is 'lite' by default
+        config(['skills.discovery_mode' => 'lite']);
+
+        $skillPath = __DIR__.'/../fixtures/skills/test-skill';
+        if (! File::exists($skillPath)) {
+            File::makeDirectory($skillPath, 0755, true);
+        }
+        File::put($skillPath.'/SKILL.md', <<<'EOT'
+---
+name: test-skill
+description: A test skill
+---
+# Instructions
+Do the test thing.
+EOT
+        );
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['test-skill'];
+            }
+        };
+
+        // Act & Assert: Default (lite) - should NOT contain full instructions
+        $lite = $agent->skillInstructions();
+        $this->assertStringContainsString('test-skill', $lite);
+        $this->assertStringNotContainsString('Do the test thing.', $lite);
+
+        // Act & Assert: Override to 'full' - should contain full instructions
+        $full = $agent->skillInstructions('full');
+        $this->assertStringContainsString('Do the test thing.', $full);
+        $this->assertStringContainsString('<skill name="test-skill">', $full);
+
+        // Act & Assert: Override to 'lite' explicitly
+        $liteExplicit = $agent->skillInstructions('lite');
+        $this->assertStringNotContainsString('Do the test thing.', $liteExplicit);
+        $this->assertStringContainsString('description="A test skill"', $liteExplicit);
+
+        // Cleanup
+        File::deleteDirectory($skillPath);
+    }
+
     public function test_skills_are_not_loaded_when_disabled()
     {
         // Arrange
