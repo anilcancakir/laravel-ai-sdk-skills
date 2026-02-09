@@ -99,4 +99,49 @@ class SkillTest extends TestCase
 
         $this->assertFalse($skill->matchesTrigger('any message'));
     }
+
+    public function test_defaults_for_new_properties(): void
+    {
+        $skill = new Skill(
+            name: 'Test',
+            description: 'Test',
+            instructions: 'Test',
+            tools: [],
+            triggers: []
+        );
+
+        $this->assertNull($skill->version);
+        $this->assertEquals([], $skill->mcp);
+        $this->assertEquals([], $skill->constraints);
+    }
+
+    public function test_it_can_be_instantiated_with_version(): void
+    {
+        $skill = new Skill(
+            name: 'Test',
+            description: 'Test',
+            instructions: 'Test',
+            tools: [],
+            triggers: [],
+            version: '2.0.0'
+        );
+
+        $this->assertEquals('2.0.0', $skill->version);
+    }
+
+    public function test_it_can_be_instantiated_with_mcp_and_constraints(): void
+    {
+        $skill = new Skill(
+            name: 'Test',
+            description: 'Test',
+            instructions: 'Test',
+            tools: [],
+            triggers: [],
+            mcp: ['server' => 'stdio'],
+            constraints: ['model' => 'claude']
+        );
+
+        $this->assertEquals(['server' => 'stdio'], $skill->mcp);
+        $this->assertEquals(['model' => 'claude'], $skill->constraints);
+    }
 }

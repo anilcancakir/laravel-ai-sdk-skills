@@ -17,6 +17,9 @@ readonly class Skill
      * @param  string  $instructions  The instructions for the AI to follow.
      * @param  array  $tools  The list of tools available for this skill.
      * @param  array  $triggers  The list of keywords that trigger this skill.
+     * @param  string|null  $version  The version of the skill.
+     * @param  array  $mcp  MCP configuration for the skill.
+     * @param  array  $constraints  Constraints for the skill.
      * @return void
      */
     public function __construct(
@@ -25,6 +28,9 @@ readonly class Skill
         public string $instructions,
         public array $tools,
         public array $triggers,
+        public ?string $version = null,
+        public array $mcp = [],
+        public array $constraints = [],
     ) {}
 
     /**
