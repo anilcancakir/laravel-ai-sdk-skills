@@ -102,6 +102,7 @@ class ListSkillsToolTest extends TestCase
 
         $tool = new ListSkills($registry);
 
+        $this->assertEquals('list_skills', $tool->name());
         $this->assertNotEmpty($tool->description());
     }
 
