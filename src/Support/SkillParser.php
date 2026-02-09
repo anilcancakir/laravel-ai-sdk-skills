@@ -82,12 +82,29 @@ class SkillParser
             return null;
         }
 
+        $mcp = $data['mcp'] ?? [];
+        if (! is_array($mcp)) {
+            Log::warning("SkillParser: 'mcp' must be an array.");
+
+            return null;
+        }
+
+        $constraints = $data['constraints'] ?? [];
+        if (! is_array($constraints)) {
+            Log::warning("SkillParser: 'constraints' must be an array.");
+
+            return null;
+        }
+
         return new Skill(
             name: $data['name'],
             description: $data['description'],
             instructions: $body,
             tools: $tools,
             triggers: $triggers,
+            version: isset($data['version']) ? (string) $data['version'] : null,
+            mcp: $mcp,
+            constraints: $constraints,
         );
     }
 }

@@ -100,4 +100,44 @@ Body
 MD;
         $this->assertNull(SkillParser::parse($markdown));
     }
+
+    public function test_it_parses_version_mcp_and_constraints()
+    {
+        $markdown = <<<'MD'
+---
+name: full-skill
+description: A skill with everything
+version: 1.2.3
+mcp:
+  - name: filesystem
+    args: { path: /tmp }
+constraints:
+  - OS: Linux
+---
+Instructions.
+MD;
+
+        $skill = SkillParser::parse($markdown);
+
+        $this->assertEquals('1.2.3', $skill->version);
+        $this->assertEquals([['name' => 'filesystem', 'args' => ['path' => '/tmp']]], $skill->mcp);
+        $this->assertEquals([['OS' => 'Linux']], $skill->constraints);
+    }
+
+    public function test_it_defaults_missing_fields_to_null_or_empty_array()
+    {
+        $markdown = <<<'MD'
+---
+name: minimal-skill
+description: Min
+---
+Instructions.
+MD;
+
+        $skill = SkillParser::parse($markdown);
+
+        $this->assertNull($skill->version);
+        $this->assertEquals([], $skill->mcp);
+        $this->assertEquals([], $skill->constraints);
+    }
 }
