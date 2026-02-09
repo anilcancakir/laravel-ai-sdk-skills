@@ -20,11 +20,13 @@ class ListSkills implements Tool
      *
      * @param  SkillRegistry  $registry  The skill registry instance.
      * @param  int  $maxDescriptionSkills  Maximum skills to include in description.
+     * @param  string|null  $mode  The discovery mode ('lite' or 'full').
      * @return void
      */
     public function __construct(
         protected SkillRegistry $registry,
         protected int $maxDescriptionSkills = 50,
+        protected ?string $mode = null,
     ) {}
 
     /**
@@ -40,7 +42,7 @@ class ListSkills implements Tool
      */
     public function description(): Stringable|string
     {
-        $baseDescription = 'List all available skills that can be loaded to provide specialized capabilities. Returns a table of skills with their descriptions, triggers, and current status.';
+        $baseDescription = 'List all available skills that can be loaded to provide specialized capabilities. Returns a table of skills with their descriptions, triggers, source, and current status.';
 
         $availableSkills = $this->registry->available();
 
@@ -57,12 +59,18 @@ class ListSkills implements Tool
      */
     protected function buildSkillsXml($skills): string
     {
+        $mode = $this->mode ?? config('skills.discovery_mode', 'lite');
         $xml = "<available_skills>\n";
 
         foreach ($skills as $skill) {
             $xml .= "  <skill>\n";
             $xml .= "    <name>{$skill->name}</name>\n";
             $xml .= "    <description>{$skill->description}</description>\n";
+
+            if ($mode === 'full') {
+                $xml .= "    <instructions>{$skill->instructions}</instructions>\n";
+            }
+
             $xml .= "  </skill>\n";
         }
 
@@ -99,17 +107,18 @@ class ListSkills implements Tool
 
             $status = isset($loaded[$slug]) ? 'Loaded' : 'Available';
             $triggers = implode(', ', $skill->triggers);
+            $source = ucfirst($skill->source);
 
             // Sanitize pipe characters in content to prevent breaking markdown table
             $name = str_replace('|', '\|', $skill->name);
             $desc = str_replace('|', '\|', $skill->description);
             $triggers = str_replace('|', '\|', $triggers);
 
-            $rows[] = "| {$name} | {$desc} | {$triggers} | {$status} |";
+            $rows[] = "| {$name} | {$desc} | {$triggers} | {$source} | {$status} |";
         }
 
-        $header = '| Name | Description | Triggers | Status |';
-        $divider = '|---|---|---|---|';
+        $header = '| Name | Description | Triggers | Source | Status |';
+        $divider = '|---|---|---|---|---|';
 
         if (empty($rows)) {
             return 'No skills found'.($filter ? " matching filter '{$filter}'" : '').'.';

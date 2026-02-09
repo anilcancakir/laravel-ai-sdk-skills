@@ -6,11 +6,11 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Unit;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
+use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use Illuminate\Support\Collection;
 use Laravel\Ai\Tools\Request;
 use Mockery;
-use PHPUnit\Framework\TestCase;
 
 class ListSkillsToolTest extends TestCase
 {
@@ -60,14 +60,14 @@ class ListSkillsToolTest extends TestCase
         $result = $tool->handle(new Request([]));
 
         // Assert
-        $this->assertStringContainsString('| Name | Description | Triggers | Status |', (string) $result);
-        $this->assertStringContainsString('|---|---|---|---|', (string) $result);
+        $this->assertStringContainsString('| Name | Description | Triggers | Source | Status |', (string) $result);
+        $this->assertStringContainsString('|---|---|---|---|---|', (string) $result);
 
         // Check skill 1 (Loaded)
-        $this->assertStringContainsString('| git-master | Git operations | git, commit | Loaded |', (string) $result);
+        $this->assertStringContainsString('| git-master | Git operations | git, commit | Local | Loaded |', (string) $result);
 
         // Check skill 2 (Available)
-        $this->assertStringContainsString('| search-docs | Search documentation | search, find | Available |', (string) $result);
+        $this->assertStringContainsString('| search-docs | Search documentation | search, find | Local | Available |', (string) $result);
     }
 
     public function test_it_handles_no_skills_available(): void
@@ -201,5 +201,63 @@ class ListSkillsToolTest extends TestCase
         // Count skill tags - should be limited to 50
         $skillCount = substr_count($description, '<skill>');
         $this->assertLessThanOrEqual(50, $skillCount);
+    }
+
+    public function test_description_includes_instructions_in_full_mode(): void
+    {
+        // Arrange
+        $registry = Mockery::mock(SkillRegistry::class);
+
+        $skill = new Skill(
+            name: 'git-master',
+            description: 'Git operations',
+            instructions: 'Detailed git instructions...',
+            tools: [],
+            triggers: []
+        );
+
+        $registry->shouldReceive('available')
+            ->once()
+            ->andReturn(new Collection(['git-master' => $skill]));
+
+        // Initialize with 'full' mode
+        $tool = new ListSkills($registry, 50, 'full');
+
+        // Act
+        $description = (string) $tool->description();
+
+        // Assert
+        $this->assertStringContainsString('<name>git-master</name>', $description);
+        $this->assertStringContainsString('<description>Git operations</description>', $description);
+        $this->assertStringContainsString('<instructions>Detailed git instructions...</instructions>', $description);
+    }
+
+    public function test_description_excludes_instructions_in_lite_mode(): void
+    {
+        // Arrange
+        $registry = Mockery::mock(SkillRegistry::class);
+
+        $skill = new Skill(
+            name: 'git-master',
+            description: 'Git operations',
+            instructions: 'Detailed git instructions...',
+            tools: [],
+            triggers: []
+        );
+
+        $registry->shouldReceive('available')
+            ->once()
+            ->andReturn(new Collection(['git-master' => $skill]));
+
+        // Initialize with 'lite' mode
+        $tool = new ListSkills($registry, 50, 'lite');
+
+        // Act
+        $description = (string) $tool->description();
+
+        // Assert
+        $this->assertStringContainsString('<name>git-master</name>', $description);
+        $this->assertStringContainsString('<description>Git operations</description>', $description);
+        $this->assertStringNotContainsString('<instructions>', $description);
     }
 }
