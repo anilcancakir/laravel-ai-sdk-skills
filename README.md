@@ -1,34 +1,54 @@
 # Laravel AI SDK Skills
 
-A skill system for Laravel AI SDK that enables AI agents to use specialized, reusable capabilities.
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Creating Skills](#creating-skills)
+    - [Skill File Structure](#skill-file-structure)
+    - [Artisan Commands](#artisan-commands)
+- [Using Skills in Agents](#using-skills-in-agents)
+    - [The Skillable Trait](#the-skillable-trait)
+    - [Loading Skills by Path](#loading-skills-by-path)
+- [Configuration](#configuration)
+- [Agent Skills Protocol](#agent-skills-protocol)
+    - [Progressive Disclosure](#progressive-disclosure)
+    - [Tool Naming Convention](#tool-naming-convention)
+    - [Canonical XML Format](#canonical-xml-format)
+- [How It Works](#how-it-works)
+- [Testing](#testing)
 
+<a name="introduction"></a>
 ## Introduction
 
-This package extends Laravel AI SDK with a skill system. Skills are reusable capability modules that provide instructions, tools, and context to your AI agents.
+This package extends Laravel AI SDK with a high-performance skill system. Skills are reusable capability modules that provide instructions, tools, and context to your AI agents through a **Progressive Disclosure** mechanism.
 
-Instead of embedding all logic in your agent class, you define skills as separate markdown files. Each skill encapsulates its own instructions and tools. Agents load only what they need.
+Instead of embedding all logic in your agent class or bloating the context window with unused instructions, you define skills as separate markdown files. Each skill encapsulates its own instructions and tools. Agents discover what's available and load only what they need during the conversation.
 
+<a name="installation"></a>
 ## Installation
+
+Install the package via composer:
 
 ```shell
 composer require anilcancakir/laravel-ai-sdk-skills
 ```
 
-The service provider registers automatically. To publish the configuration:
+The service provider registers automatically. You should publish the configuration file:
 
 ```shell
 php artisan vendor:publish --provider="AnilcanCakir\LaravelAiSdkSkills\SkillsServiceProvider"
 ```
 
+<a name="quick-start"></a>
 ## Quick Start
 
-Generate a new skill:
+Generate a new skill using the Artisan command:
 
 ```shell
 php artisan skills:make doc-writer --description="Writes technical documentation"
 ```
 
-This creates `resources/skills/doc-writer/SKILL.md`. Add the skill to your agent:
+This creates `resources/skills/doc-writer/SKILL.md`. Now, add the `Skillable` trait to your agent:
 
 ```php
 <?php
@@ -55,13 +75,15 @@ class MyAssistant implements Agent, HasTools
 }
 ```
 
-That's it! The agent now has access to the skill's tools. Skills are loaded lazily on first `skillTools()` call.
+By calling `$this->skillTools()`, your agent automatically gains access to the `list_skills` and `skill` meta-tools, enabling dynamic capability discovery.
 
+<a name="creating-skills"></a>
 ## Creating Skills
 
+<a name="skill-file-structure"></a>
 ### Skill File Structure
 
-Each skill lives in its own directory with a `SKILL.md` file. The file uses YAML frontmatter for metadata and markdown for instructions:
+Each skill lives in its own directory with a `SKILL.md` file. The file uses YAML frontmatter for metadata and markdown for the actual instructions:
 
 ```markdown
 ---
@@ -71,10 +93,8 @@ version: 1.0.0
 triggers:
   - write documentation
   - create docs
-  - document this
 tools:
   - App\Ai\Tools\SearchDocs
-  - App\Ai\Tools\WriteFile
 mcp:
   - filesystem
 constraints:
@@ -85,224 +105,162 @@ constraints:
 
 You are a technical documentation expert. When writing docs:
 
-1. Use clear, concise language
-2. Include code examples
-3. Add helpful notes and warnings
-
-Always start with an introduction explaining what the reader will learn.
+1. Use clear, concise language.
+2. Include code examples.
+3. Always use canonical XML tags for sections.
 ```
 
 | Field | Required | Description |
 |:------|:---------|:------------|
-| `name` | Yes | Unique identifier for the skill |
-| `description` | Yes | Short explanation shown in skill listings |
-| `version` | No | Semantic version of the skill |
-| `triggers` | No | Keywords that hint when this skill is relevant |
-| `tools` | No | Fully qualified class names of tools this skill provides |
-| `mcp` | No | List of MCP (Model Context Protocol) dependencies |
-| `constraints` | No | List of runtime requirements (e.g. model versions) |
+| `name` | Yes | Unique identifier (snake_case recommended). |
+| `description` | Yes | Short explanation for progressive disclosure. |
+| `version` | No | Semantic version of the skill. |
+| `triggers` | No | Keywords that hint when this skill is relevant. |
+| `tools` | No | Fully qualified class names of tools provided by this skill. |
+| `mcp` | No | List of MCP (Model Context Protocol) dependencies. |
+| `constraints` | No | List of runtime requirements (e.g., model versions). |
 
-The markdown body becomes the skill's instructions, injected into your agent's context when loaded.
+<a name="artisan-commands"></a>
+### Artisan Commands
 
-### Using Artisan Command
+Use the `make` command to scaffold new skills quickly:
 
 ```shell
 php artisan skills:make my-skill
 ```
 
-With a custom description:
+You can also provide a description directly:
 
 ```shell
 php artisan skills:make code-reviewer --description="Reviews code for best practices"
 ```
 
+<a name="using-skills-in-agents"></a>
 ## Using Skills in Agents
 
+<a name="the-skillable-trait"></a>
 ### The Skillable Trait
 
-Add the `Skillable` trait to your agent and define which skills it should use:
+The `Skillable` trait handles the heavy lifting of loading and managing skills.
 
 ```php
-<?php
-
-namespace App\Ai\Agents;
-
-use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
-use Laravel\Ai\Contracts\Agent;
-use Laravel\Ai\Contracts\HasTools;
-
-class WindAssistant implements Agent, HasTools
+public function instructions(): string
 {
-    use Skillable;
+    return "Base instructions here...\n\n" . $this->skillInstructions();
+}
 
-    public function skills(): iterable
-    {
-        return [
-            'doc-writer',
-            'code-reviewer',
-        ];
-    }
-
-    public function tools(): iterable
-    {
-        return array_merge(
-            [new SearchDocs],   // Agent's native tools
-            $this->skillTools() // Tools from loaded skills
-        );
-    }
-
-    public function instructions(): string
-    {
-        return "You are a helpful assistant.\n\n" . $this->skillInstructions();
-    }
+public function tools(): iterable
+{
+    return array_merge(
+        [new NativeTool],
+        $this->skillTools()
+    );
 }
 ```
 
-The trait provides three methods:
-
 | Method | Returns | Description |
 |:-------|:--------|:------------|
-| `skillTools()` | `array` | All tools from loaded skills, plus `ListSkills` and `LoadSkill` meta-tools |
-| `skillInstructions()` | `string` | Combined instructions from all loaded skills |
-| `skills()` | `iterable` | Override to define which skills your agent uses |
+| `skillTools()` | `array` | Returns `list_skills`, `skill`, and any tools from pre-loaded skills. |
+| `skillInstructions()` | `string` | Combined instructions from all loaded skills wrapped in XML. |
+| `skills()` | `iterable` | Define which skills should be available to this agent. |
 
+<a name="loading-skills-by-path"></a>
 ### Loading Skills by Path
 
-Skills can be loaded directly by path for package-specific or non-standard locations:
+While loading by name is standard, you can also load skills by their absolute path:
 
 ```php
 public function skills(): iterable
 {
     return [
-        'doc-writer',                                    // By name
-        resource_path('skills/my-custom-skill'),         // By path
-        base_path('packages/my-package/skills/helper'),  // Another path
+        'doc-writer',
+        resource_path('custom/internal-skill'),
     ];
 }
 ```
 
+<a name="configuration"></a>
 ## Configuration
 
-After publishing, configure `config/skills.php`. Note that the `enabled` flag can be used to globally disable the skill system (e.g., in specific environments).
+The `config/skills.php` file allows you to control the discovery process and global state.
 
 ```php
-<?php
-
 return [
-    /*
-    |--------------------------------------------------------------------------
-    | Enable Skills
-    |--------------------------------------------------------------------------
-    |
-    | When disabled, the Skillable trait will return empty tools/instructions
-    | and the discovery process will be skipped.
-    |
-    */
-    'enabled' => true,
+    // Globally enable or disable the skill system
+    'enabled' => env('SKILLS_ENABLED', true),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Skill Paths
-    |--------------------------------------------------------------------------
-    |
-    | Directories where skills are discovered.
-    |
-    */
+    // Directories where skills are discovered
     'paths' => [
         resource_path('skills'),
     ],
 ];
 ```
 
-Multiple discovery paths are supported:
+> [!NOTE]
+> When `enabled` is set to `false`, the `Skillable` trait gracefully returns empty tools and instructions without triggering discovery.
 
-```php
-'paths' => [
-    resource_path('skills'),
-    base_path('packages/shared-skills'),
-],
-```
-
-Skills are discovered in order. If two skills share the same name, the later path takes precedence.
-
-## Artisan Commands
-
-| Command | Description |
-|:--------|:------------|
-| `skills:list` | Show all discovered skills |
-| `skills:make {name}` | Create a new skill |
-| `skills:clear` | Clear the skill discovery cache |
-
-Example output from `skills:list`:
-
-```
-+---------------+----------------------------------+
-| Name          | Description                      |
-+---------------+----------------------------------+
-| doc-writer    | Writes technical documentation   |
-| code-reviewer | Reviews code for best practices  |
-+---------------+----------------------------------+
-```
-
+<a name="agent-skills-protocol"></a>
 ## Agent Skills Protocol
 
-The package implements a specialized protocol for LLM interaction, ensuring predictable discovery and canonical instruction formats.
+The package implements a specialized protocol to ensure predictable interactions between the LLM and your codebase.
 
-### Tool Naming Convention
-
-All skills-related tools follow a strict `snake_case` naming convention. If you are implementing custom tools for your skills, ensure they implement the `name()` method:
-
-```php
-public function name(): string
-{
-    return 'search_docs';
-}
-```
-
-The core package provides:
-- `list_skills`: Discovery and progressive disclosure
-- `skill`: Dynamic loader (formerly `LoadSkill`)
-
+<a name="progressive-disclosure"></a>
 ### Progressive Disclosure
 
-To prevent context window bloat, the package uses progressive disclosure. The `list_skills` tool description dynamically injects metadata about available skills using an XML-wrapped format. This allows the AI to "know" what skills exist without loading their full instructions until needed.
+To prevent context window bloat, the system uses progressive disclosure. The `list_skills` tool doesn't just list names; its description dynamically injects an `<available_skills>` XML block. 
 
-### Canonical Instruction Format
+This allows the AI to see exactly what each skill does before deciding to load it. The `maxDescriptionSkills` config (default: 50) prevents the tool description itself from becoming too large.
 
-When a skill is loaded (either via `SkillRegistry` or the `skill` tool), instructions are wrapped in a canonical XML tag:
+<a name="tool-naming-convention"></a>
+### Tool Naming Convention
+
+All skill-related tools follow a strict `snake_case` naming convention. Core tools provided:
+
+- `list_skills`: Discovery and metadata disclosure.
+- `skill`: Dynamic loader that fetches instructions and tools.
+
+If you implement custom tools for your skills, we recommend implementing the `name()` method explicitly:
+
+```php
+public function name(): string { return 'search_docs'; }
+```
+
+<a name="canonical-xml-format"></a>
+### Canonical XML Format
+
+When instructions are injected or loaded, they are always wrapped in a canonical `<skill>` tag. This helps the LLM distinguish between base instructions and specialized skill capabilities:
 
 ```xml
 <skill name="doc-writer">
-Your instructions here...
+# Documentation Writer
+Instructions here...
 </skill>
 ```
 
+<a name="how-it-works"></a>
 ## How It Works
 
-The skill system operates through four components:
+The system architecture consists of four core components and two meta-tools:
 
-1. **Discovery**: `SkillDiscovery` scans configured paths for `SKILL.md` files
-2. **Parsing**: `SkillParser` extracts YAML frontmatter (including versioning and MCP metadata)
-3. **Registry**: `SkillRegistry` manages loaded skills and wraps them in canonical XML
-4. **Integration**: The `Skillable` trait boots skills and manages config enforcement
+1.  **Discovery**: `SkillDiscovery` scans paths for `SKILL.md` files.
+2.  **Parsing**: `SkillParser` extracts YAML frontmatter and validates DTOs (including new `version`, `mcp`, and `constraints` fields).
+3.  **Registry**: `SkillRegistry` manages the lifecycle of loaded skills and ensures XML consistency.
+4.  **Integration**: The `Skillable` trait provides the glue for Laravel AI SDK Agents.
 
-Agents also receive two meta-tools:
+**The Meta-Tools:**
+- `list_skills`: Uses progressive disclosure to show the AI what's available.
+- `skill`: The dynamic loader (formerly `LoadSkill`) that brings capabilities into the active context.
 
-- **list_skills**: Shows available skills with metadata for progressive disclosure
-- **skill**: Dynamically loads a skill and returns XML-wrapped instructions
-
-This enables agents to discover and load skills on-demand during a conversation.
-
+<a name="testing"></a>
 ## Testing
 
-Run the test suite:
+The package maintains high test coverage to ensure reliability across Laravel versions.
 
 ```shell
 php artisan test plugins/laravel-ai-sdk-skills/tests/
 ```
 
-Or with PHPUnit directly:
+Current status: **55 tests, 138 assertions** passing.
 
-```shell
-./vendor/bin/phpunit plugins/laravel-ai-sdk-skills/tests/
-```
+> [!NOTE]
+> Phase 2 features including native MCP execution and sub-agent delegation are currently in the roadmap.
