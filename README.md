@@ -10,6 +10,7 @@
     - [The Skillable Trait](#the-skillable-trait)
     - [Loading Skills by Path](#loading-skills-by-path)
 - [Configuration](#configuration)
+    - [Discovery Mode](#discovery-mode)
 - [Agent Skills Protocol](#agent-skills-protocol)
     - [Progressive Disclosure](#progressive-disclosure)
     - [Tool Naming Convention](#tool-naming-convention)
@@ -161,8 +162,24 @@ public function tools(): iterable
 | Method | Returns | Description |
 |:-------|:--------|:------------|
 | `skillTools()` | `array` | Returns `list_skills`, `skill`, and any tools from pre-loaded skills. |
-| `skillInstructions()` | `string` | Combined instructions from all loaded skills wrapped in XML. |
+| `skillInstructions(?string $mode)` | `string` | Combined instructions from loaded skills. Pass `'lite'` or `'full'` to override config. |
 | `skills()` | `iterable` | Define which skills should be available to this agent. |
+
+The `skillInstructions()` method accepts an optional `$mode` parameter to override the global `discovery_mode` config per-agent:
+
+```php
+public function instructions(): string
+{
+    // Uses global config (default: 'lite')
+    return "Base instructions...\n\n" . $this->skillInstructions();
+}
+
+// Or override per-agent to always load full instructions
+public function instructions(): string
+{
+    return "Base instructions...\n\n" . $this->skillInstructions('full');
+}
+```
 
 <a name="loading-skills-by-path"></a>
 ### Loading Skills by Path
@@ -189,6 +206,9 @@ return [
     // Globally enable or disable the skill system
     'enabled' => env('SKILLS_ENABLED', true),
 
+    // Discovery mode: 'lite' or 'full'
+    'discovery_mode' => env('SKILLS_DISCOVERY_MODE', 'lite'),
+
     // Directories where skills are discovered
     'paths' => [
         resource_path('skills'),
@@ -198,6 +218,30 @@ return [
 
 > [!NOTE]
 > When `enabled` is set to `false`, the `Skillable` trait gracefully returns empty tools and instructions without triggering discovery.
+
+<a name="discovery-mode"></a>
+### Discovery Mode
+
+The `discovery_mode` setting controls how much skill content is injected into the agent's context when skills are pre-loaded via the `skills()` method.
+
+| Mode | `skillInstructions()` Output | Token Usage | Agent Must Call `skill()` |
+|:-----|:----------------------------|:------------|:--------------------------|
+| `lite` | `<skill name="..." description="..." />` | Minimal | Yes, to get full instructions |
+| `full` | `<skill name="...">full SKILL.md content</skill>` | Higher | No, instructions already loaded |
+
+**Lite mode** (default) follows the Progressive Disclosure principle — agents see only what each skill is about. When the agent needs the full instructions, it calls the `skill('skill-name')` tool to load them on demand. This saves tokens for agents that may not use every pre-loaded skill.
+
+**Full mode** eagerly injects the complete SKILL.md content for every pre-loaded skill. Best for agents with a focused skill set where you know every skill will be used.
+
+You can override the global setting per-agent by passing a mode to `skillInstructions()`:
+
+```php
+// Always load full instructions for this specific agent
+public function instructions(): string
+{
+    return "You are an expert...\n\n" . $this->skillInstructions('full');
+}
+```
 
 <a name="agent-skills-protocol"></a>
 ## Agent Skills Protocol
@@ -260,7 +304,7 @@ The package maintains high test coverage to ensure reliability across Laravel ve
 php artisan test plugins/laravel-ai-sdk-skills/tests/
 ```
 
-Current status: **55 tests, 138 assertions** passing.
+Current status: **63 tests, 171 assertions** passing.
 
 > [!NOTE]
 > Phase 2 features including native MCP execution and sub-agent delegation are currently in the roadmap.
