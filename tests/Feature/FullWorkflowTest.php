@@ -93,6 +93,7 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Feature {
     {
         public function test_full_skill_lifecycle_discover_list_load(): void
         {
+            config(['skills.discovery_mode' => 'full']);
             $registry = $this->app->make(SkillRegistry::class);
 
             $available = $registry->available();

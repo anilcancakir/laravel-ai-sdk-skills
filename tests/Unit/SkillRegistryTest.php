@@ -80,7 +80,7 @@ class SkillRegistryTest extends TestCase
         $this->assertInstanceOf($toolClass, $tools[0]);
     }
 
-    public function test_it_aggregates_instructions()
+    public function test_it_aggregates_instructions_in_full_mode()
     {
         $discovery = Mockery::mock(SkillDiscovery::class);
 
@@ -112,7 +112,7 @@ class SkillRegistryTest extends TestCase
         $registry->load('skill-a');
         $registry->load('skill-b');
 
-        $instructions = $registry->instructions();
+        $instructions = $registry->instructions('full');
 
         $expected = <<<'XML'
 <skill name="Skill A">
@@ -126,6 +126,61 @@ XML;
             trim(str_replace("\r\n", "\n", $expected)),
             trim(str_replace("\r\n", "\n", $instructions))
         );
+    }
+
+    public function test_it_returns_only_name_and_description_in_lite_mode()
+    {
+        $discovery = Mockery::mock(SkillDiscovery::class);
+
+        $skill = new Skill(
+            name: 'Wind UI',
+            description: 'Utility-first Flutter UI framework',
+            instructions: 'Full instructions that should NOT appear in lite mode',
+            tools: [],
+            triggers: []
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('wind-ui')
+            ->andReturn($skill);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('wind-ui');
+
+        $instructions = $registry->instructions('lite');
+
+        $this->assertStringContainsString('name="Wind UI"', $instructions);
+        $this->assertStringContainsString('description="Utility-first Flutter UI framework"', $instructions);
+        $this->assertStringNotContainsString('Full instructions that should NOT appear', $instructions);
+        $this->assertStringContainsString('/>', $instructions);
+    }
+
+    public function test_instructions_defaults_to_lite_mode_from_config()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+
+        $skill = new Skill(
+            name: 'Test Skill',
+            description: 'A test',
+            instructions: 'Should not appear',
+            tools: [],
+            triggers: []
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('test-skill')
+            ->andReturn($skill);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('test-skill');
+
+        // No mode param — should use config default (lite)
+        $instructions = $registry->instructions();
+
+        $this->assertStringNotContainsString('Should not appear', $instructions);
+        $this->assertStringContainsString('name="Test Skill"', $instructions);
     }
 
     public function test_it_handles_missing_tool_classes_gracefully()

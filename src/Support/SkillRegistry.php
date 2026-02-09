@@ -111,17 +111,30 @@ class SkillRegistry
 
     /**
      * Get the combined instructions from all loaded skills.
+     *
+     * In 'lite' mode, only skill name and description are returned.
+     * In 'full' mode, full instructions are included.
      */
-    public function instructions(): string
+    public function instructions(?string $mode = null): string
     {
+        $mode ??= config('skills.discovery_mode', 'lite');
+
         $instructions = '';
 
         foreach ($this->loaded as $skill) {
-            $instructions .= sprintf(
-                "<skill name=\"%s\">\n%s\n</skill>\n",
-                $skill->name,
-                trim($skill->instructions)
-            );
+            if ($mode === 'full') {
+                $instructions .= sprintf(
+                    "<skill name=\"%s\">\n%s\n</skill>\n",
+                    $skill->name,
+                    trim($skill->instructions)
+                );
+            } else {
+                $instructions .= sprintf(
+                    "<skill name=\"%s\" description=\"%s\" />\n",
+                    $skill->name,
+                    $skill->description
+                );
+            }
         }
 
         return trim($instructions);

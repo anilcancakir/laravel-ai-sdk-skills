@@ -52,6 +52,8 @@ EOT
 
     public function test_load_by_path()
     {
+        config(['skills.discovery_mode' => 'full']);
+
         // Arrange: Create a temp skill in a random location
         $tempPath = storage_path('temp-skills/path-skill');
         if (! File::exists($tempPath)) {
