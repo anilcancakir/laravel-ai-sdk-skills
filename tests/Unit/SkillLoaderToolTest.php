@@ -1,28 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Unit;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
-use AnilcanCakir\LaravelAiSdkSkills\Tools\LoadSkill;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
+use Laravel\Ai\Tools\Request;
 use Mockery;
 
-class LoadSkillToolTest extends TestCase
+class SkillLoaderToolTest extends TestCase
 {
-    public function test_it_defines_schema()
+    public function test_tool_name_is_skill(): void
     {
         $registry = Mockery::mock(SkillRegistry::class);
-        $tool = new LoadSkill($registry);
+        $tool = new SkillLoader($registry);
 
-        $schema = $tool->schema();
+        $this->assertEquals('skill', $tool->name());
+    }
 
-        $this->assertEquals('load_skill', $tool->name());
+    public function test_it_defines_schema(): void
+    {
+        $registry = Mockery::mock(SkillRegistry::class);
+        $tool = new SkillLoader($registry);
+
         $this->assertNotEmpty($tool->description());
     }
 
-    public function test_it_loads_skill_and_returns_instructions()
+    public function test_it_loads_skill_and_returns_xml_wrapped_instructions(): void
     {
         $discovery = Mockery::mock(SkillDiscovery::class);
         $registry = new SkillRegistry($discovery);
@@ -39,16 +47,17 @@ class LoadSkillToolTest extends TestCase
             ->with('test-skill')
             ->andReturn($skill);
 
-        $tool = new LoadSkill($registry);
+        $tool = new SkillLoader($registry);
 
-        $result = $tool->handle(['name' => 'test-skill']);
+        $result = $tool->handle(new Request(['name' => 'test-skill']));
 
-        $this->assertStringContainsString('Skill [Test Skill] loaded', (string) $result);
+        $this->assertStringContainsString('<skill name="Test Skill">', (string) $result);
         $this->assertStringContainsString('Do this.', (string) $result);
+        $this->assertStringContainsString('</skill>', (string) $result);
         $this->assertTrue($registry->isLoaded('test-skill'));
     }
 
-    public function test_it_returns_error_if_skill_not_found()
+    public function test_it_returns_error_if_skill_not_found(): void
     {
         $discovery = Mockery::mock(SkillDiscovery::class);
         $registry = new SkillRegistry($discovery);
@@ -57,11 +66,12 @@ class LoadSkillToolTest extends TestCase
             ->with('unknown-skill')
             ->andReturn(null);
 
-        $tool = new LoadSkill($registry);
+        $tool = new SkillLoader($registry);
 
-        $result = $tool->handle(['name' => 'unknown-skill']);
+        $result = $tool->handle(new Request(['name' => 'unknown-skill']));
 
         $this->assertStringContainsString('Skill [unknown-skill] not found', (string) $result);
+        $this->assertStringNotContainsString('<skill', (string) $result);
         $this->assertFalse($registry->isLoaded('unknown-skill'));
     }
 }

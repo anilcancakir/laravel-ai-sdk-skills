@@ -103,6 +103,7 @@ class SkillDiscovery
 
             $finder = Finder::create()
                 ->in($path)
+                ->followLinks()
                 ->files()
                 ->depth(1)
                 ->name('SKILL.md');

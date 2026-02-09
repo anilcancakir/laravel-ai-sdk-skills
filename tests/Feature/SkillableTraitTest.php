@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\File;
 
 class SkillableTraitTest extends TestCase
 {
-    public function test_skills_are_loaded_on_boot()
+    public function test_skills_are_loaded_on_first_skill_tools_call()
     {
         // Arrange: Create a temporary skill in a discovered path
         $skillPath = __DIR__.'/../fixtures/skills/test-skill';
@@ -37,7 +37,13 @@ EOT
             }
         };
 
-        // Assert: Verify skill is loaded
+        // Skills are NOT loaded yet (lazy boot)
+        $this->assertFalse(resolve(SkillRegistry::class)->isLoaded('test-skill'));
+
+        // Trigger lazy boot by calling skillTools()
+        $agent->skillTools();
+
+        // Assert: Now skill is loaded
         $this->assertTrue(resolve(SkillRegistry::class)->isLoaded('test-skill'));
 
         // Cleanup
@@ -71,7 +77,6 @@ EOT
             public function __construct($path)
             {
                 $this->path = $path;
-                $this->bootSkillable();
             }
 
             public function skills(): iterable
@@ -79,6 +84,9 @@ EOT
                 return [$this->path];
             }
         };
+
+        // Trigger lazy boot
+        $agent->skillTools();
 
         // Assert
         $this->assertTrue(resolve(SkillRegistry::class)->isLoaded('path-skill'));

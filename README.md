@@ -50,15 +50,12 @@ class MyAssistant implements Agent, HasTools
 
     public function tools(): iterable
     {
-        return array_merge(
-            [], // Your native tools
-            $this->skillTools()
-        );
+        return $this->skillTools();
     }
 }
 ```
 
-The agent now has access to the doc-writer skill's instructions and tools.
+That's it! The agent now has access to the skill's tools. Skills are loaded lazily on first `skillTools()` call.
 
 ## Creating Skills
 
