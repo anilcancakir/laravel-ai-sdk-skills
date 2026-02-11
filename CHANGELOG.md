@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Remote Discovery**: Skills can now be fetched from a remote API endpoint (`remote` and `dual` modes)
 - **Dual-Mode Discovery**: Merge skills from both local filesystem and remote sources simultaneously
 - **Skill Source Mode**: New `mode` config key (`local`, `remote`, `dual`) to control where skills are discovered from
-- **Extended Skill Metadata**: `version`, `mcp`, and `constraints` fields in YAML frontmatter
+- **Extended Skill Metadata**: `mcp`, and `constraints` fields in YAML frontmatter
 - **Environment Configuration**: All config values now support `env()` overrides (`SKILLS_ENABLED`, `SKILLS_DISCOVERY_MODE`, `SKILLS_MODE`, `SKILLS_REMOTE_URL`, `SKILLS_REMOTE_TOKEN`, `SKILLS_REMOTE_TIMEOUT`)
 - **Composer Scripts**: `test`, `lint`, and `format` scripts for development workflow
 
@@ -22,12 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Renamed `LoadSkill` to `SkillLoader`**: Tool class renamed for consistency (tool name remains `skill`)
 - **`ListSkills` tool**: Added `name()` method for explicit tool naming
 - **Config enabled flag**: `skills.enabled` config key to globally enable/disable the skill system
-- **Skill stub**: Updated template with `tools` and `triggers` arrays in YAML frontmatter
+- **Skill stub**: Updated template with `tools` array in YAML frontmatter
 
 ### Fixed
 
-- Tool interface compatibility for `name()` method
-- Test alignment for 3 meta-tools (`list_skills`, `skill`, `skill_read`)
+- **Tool interface compatibility**: Fixed `name()` method usage.
+- **Test alignment**: Updated tests to reflect metadata changes.
+- **`skill_read` Tool**: Enhanced parameter descriptions to ensure correct LLM usage.
 
 ## [1.0.0] - 2026-02-09
 

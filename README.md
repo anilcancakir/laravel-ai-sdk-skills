@@ -68,8 +68,6 @@ Each skill lives in its own directory with a `SKILL.md` file. It uses YAML front
 ---
 name: doc-writer
 description: Writes technical documentation in a friendly style
-tools:
-  - App\Ai\Tools\SearchDocs
 ---
 
 # Documentation Writer
@@ -81,7 +79,6 @@ You are a technical documentation expert. Use clear language and provide code ex
 |:------|:---------|:------------|
 | `name` | Yes | Unique identifier (snake_case). |
 | `description` | Yes | Short explanation used for discovery. |
-| `tools` | No | Fully qualified class names of tools provided by this skill. |
 
 ## Core Concepts
 
