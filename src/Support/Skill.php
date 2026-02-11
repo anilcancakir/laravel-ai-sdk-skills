@@ -20,6 +20,8 @@ readonly class Skill
      * @param  string|null  $version  The version of the skill.
      * @param  array  $mcp  MCP configuration for the skill.
      * @param  array  $constraints  Constraints for the skill.
+     * @param  string  $source  The source of the skill (e.g., local, remote).
+     * @param  string|null  $basePath  The absolute path to the skill's directory.
      * @return void
      */
     public function __construct(
@@ -31,6 +33,8 @@ readonly class Skill
         public ?string $version = null,
         public array $mcp = [],
         public array $constraints = [],
+        public string $source = 'local',
+        public ?string $basePath = null,
     ) {}
 
     /**

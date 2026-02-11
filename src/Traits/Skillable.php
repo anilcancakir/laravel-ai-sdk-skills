@@ -1,12 +1,11 @@
 <?php
 
-declare(strict_types=1);
-
 namespace AnilcanCakir\LaravelAiSdkSkills\Traits;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillReferenceReader;
 use Laravel\Ai\Contracts\Tool;
 
 use function app;
@@ -74,6 +73,7 @@ trait Skillable
             [
                 new ListSkills($registry),
                 new SkillLoader($registry),
+                new SkillReferenceReader($registry),
             ],
             $registry->tools()
         );

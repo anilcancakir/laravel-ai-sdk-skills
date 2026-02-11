@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace AnilcanCakir\LaravelAiSdkSkills\Support;
 
 use Illuminate\Support\Collection;

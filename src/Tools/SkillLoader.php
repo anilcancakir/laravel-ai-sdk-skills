@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace AnilcanCakir\LaravelAiSdkSkills\Tools;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
