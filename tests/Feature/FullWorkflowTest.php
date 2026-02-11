@@ -145,7 +145,7 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Feature {
                 description: 'A broken skill',
                 instructions: 'Do nothing',
                 tools: ['NonExistentToolClass'],
-                triggers: []
+
             ));
 
             $registry = new SkillRegistry($mockDiscovery);

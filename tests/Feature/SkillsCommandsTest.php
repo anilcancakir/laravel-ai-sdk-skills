@@ -59,7 +59,6 @@ class SkillsCommandsTest extends TestCase
 name: Test Skill
 description: A test skill for unit testing
 tools: [tool_a, tool_b]
-triggers: [help, test]
 ---
 # Instructions
 Do something.

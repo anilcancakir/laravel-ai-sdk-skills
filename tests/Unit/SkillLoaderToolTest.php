@@ -40,7 +40,7 @@ class SkillLoaderToolTest extends TestCase
             description: 'Description',
             instructions: 'Do this.',
             tools: [],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -91,7 +91,7 @@ class SkillLoaderToolTest extends TestCase
                 description: 'Description',
                 instructions: 'Do this.',
                 tools: [],
-                triggers: [],
+
                 basePath: $tempDir
             );
 
@@ -118,7 +118,7 @@ class SkillLoaderToolTest extends TestCase
             description: 'Description',
             instructions: 'Do this.',
             tools: [],
-            triggers: [],
+
             basePath: null
         );
 

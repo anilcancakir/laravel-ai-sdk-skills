@@ -13,15 +13,13 @@ class SkillTest extends TestCase
             name: 'Git Master',
             description: 'Expert in git operations',
             instructions: 'Do git things',
-            tools: ['git_status', 'git_commit'],
-            triggers: ['commit', 'push']
+            tools: ['git_status', 'git_commit']
         );
 
         $this->assertEquals('Git Master', $skill->name);
         $this->assertEquals('Expert in git operations', $skill->description);
         $this->assertEquals('Do git things', $skill->instructions);
         $this->assertEquals(['git_status', 'git_commit'], $skill->tools);
-        $this->assertEquals(['commit', 'push'], $skill->triggers);
     }
 
     public function test_it_generates_slug_from_name()
@@ -30,8 +28,7 @@ class SkillTest extends TestCase
             name: 'Git Master',
             description: 'desc',
             instructions: 'inst',
-            tools: [],
-            triggers: []
+            tools: []
         );
 
         $this->assertEquals('git-master', $skill->slug());
@@ -43,88 +40,18 @@ class SkillTest extends TestCase
             name: 'Test',
             description: 'desc',
             instructions: 'inst',
-            tools: ['tool1'],
-            triggers: []
+            tools: ['tool1']
         );
 
         $skillWithoutTools = new Skill(
             name: 'Test',
             description: 'desc',
             instructions: 'inst',
-            tools: [],
-            triggers: []
+            tools: []
         );
 
         $this->assertTrue($skillWithTools->hasTools());
         $this->assertFalse($skillWithoutTools->hasTools());
-    }
-
-    public function test_it_matches_trigger()
-    {
-        $skill = new Skill(
-            name: 'Test',
-            description: 'desc',
-            instructions: 'inst',
-            tools: [],
-            triggers: ['commit', 'rebase']
-        );
-
-        $this->assertTrue($skill->matchesTrigger('Please commit this change'));
-        $this->assertTrue($skill->matchesTrigger('rebase my branch'));
-        $this->assertFalse($skill->matchesTrigger('just a normal message'));
-    }
-
-    public function test_it_matches_trigger_case_insensitively()
-    {
-        $skill = new Skill(
-            name: 'Test',
-            description: 'desc',
-            instructions: 'inst',
-            tools: [],
-            triggers: ['Git']
-        );
-
-        $this->assertTrue($skill->matchesTrigger('I love git'));
-    }
-
-    public function test_it_handles_empty_triggers_gracefully()
-    {
-        $skill = new Skill(
-            name: 'Test',
-            description: 'desc',
-            instructions: 'inst',
-            tools: [],
-            triggers: []
-        );
-
-        $this->assertFalse($skill->matchesTrigger('any message'));
-    }
-
-    public function test_defaults_for_new_properties(): void
-    {
-        $skill = new Skill(
-            name: 'Test',
-            description: 'Test',
-            instructions: 'Test',
-            tools: [],
-            triggers: []
-        );
-
-        $this->assertNull($skill->version);
-    }
-
-    public function test_it_can_be_instantiated_with_version(): void
-    {
-        $skill = new Skill(
-            name: 'Test',
-            description: 'Test',
-            instructions: 'Test',
-            tools: [],
-            triggers: [],
-            version: '2.0.0'
-        );
-
-        $this->assertEquals('2.0.0', $skill->version);
     }
 
     public function test_basepath_property(): void
@@ -134,7 +61,6 @@ class SkillTest extends TestCase
             description: 'desc',
             instructions: 'inst',
             tools: [],
-            triggers: [],
             basePath: '/var/skills/my-skill'
         );
 
@@ -143,13 +69,13 @@ class SkillTest extends TestCase
 
     public function test_slug_with_special_characters(): void
     {
-        $skill1 = new Skill(name: 'Über Skill', description: 'desc', instructions: 'inst', tools: [], triggers: []);
+        $skill1 = new Skill(name: 'Über Skill', description: 'desc', instructions: 'inst', tools: []);
         $this->assertEquals('uber-skill', $skill1->slug());
 
-        $skill2 = new Skill(name: 'my.skill.v2', description: 'desc', instructions: 'inst', tools: [], triggers: []);
+        $skill2 = new Skill(name: 'my.skill.v2', description: 'desc', instructions: 'inst', tools: []);
         $this->assertEquals('myskillv2', $skill2->slug());
 
-        $skill3 = new Skill(name: 'multi   space', description: 'desc', instructions: 'inst', tools: [], triggers: []);
+        $skill3 = new Skill(name: 'multi   space', description: 'desc', instructions: 'inst', tools: []);
         $this->assertEquals('multi-space', $skill3->slug());
     }
 
@@ -170,7 +96,6 @@ class SkillTest extends TestCase
                 description: 'desc',
                 instructions: 'inst',
                 tools: [],
-                triggers: [],
                 basePath: $tempDir
             );
 
@@ -188,7 +113,6 @@ class SkillTest extends TestCase
             description: 'desc',
             instructions: 'inst',
             tools: [],
-            triggers: [],
             basePath: null
         );
 
@@ -209,7 +133,6 @@ class SkillTest extends TestCase
                 description: 'desc',
                 instructions: 'inst',
                 tools: [],
-                triggers: [],
                 basePath: $tempDir
             );
 
@@ -236,7 +159,6 @@ class SkillTest extends TestCase
                 description: 'desc',
                 instructions: 'inst',
                 tools: [],
-                triggers: [],
                 basePath: $tempDir
             );
 

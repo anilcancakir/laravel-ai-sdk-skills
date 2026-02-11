@@ -101,37 +101,6 @@ MD;
         $this->assertNull(SkillParser::parse($markdown));
     }
 
-    public function test_it_parses_version()
-    {
-        $markdown = <<<'MD'
----
-name: full-skill
-description: A skill with version
-version: 1.2.3
----
-Instructions.
-MD;
-
-        $skill = SkillParser::parse($markdown);
-
-        $this->assertEquals('1.2.3', $skill->version);
-    }
-
-    public function test_it_defaults_missing_fields_to_null_or_empty_array()
-    {
-        $markdown = <<<'MD'
----
-name: minimal-skill
-description: Min
----
-Instructions.
-MD;
-
-        $skill = SkillParser::parse($markdown);
-
-        $this->assertNull($skill->version);
-    }
-
     public function test_it_returns_null_on_missing_description()
     {
         Log::shouldReceive('warning')->once();
@@ -155,22 +124,6 @@ MD;
 name: bad-tools
 description: A skill
 tools: "not-an-array"
----
-Body
-MD;
-
-        $this->assertNull(SkillParser::parse($markdown));
-    }
-
-    public function test_it_returns_null_when_triggers_is_not_array()
-    {
-        Log::shouldReceive('warning')->once();
-
-        $markdown = <<<'MD'
----
-name: bad-triggers
-description: A skill
-triggers: "string"
 ---
 Body
 MD;

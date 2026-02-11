@@ -24,7 +24,6 @@ class SkillRegistryTest extends TestCase
             description: 'A test skill',
             instructions: 'Do the test',
             tools: [],
-            triggers: []
         );
 
         $discovery->shouldReceive('resolve')
@@ -64,7 +63,7 @@ class SkillRegistryTest extends TestCase
             description: 'Has tools',
             instructions: 'Use tools',
             tools: [$toolClass],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -89,7 +88,7 @@ class SkillRegistryTest extends TestCase
             description: 'Desc A',
             instructions: 'Instruction A',
             tools: [],
-            triggers: []
+
         );
 
         $skill2 = new Skill(
@@ -97,7 +96,7 @@ class SkillRegistryTest extends TestCase
             description: 'Desc B',
             instructions: 'Instruction B',
             tools: [],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -137,7 +136,7 @@ XML;
             description: 'Utility-first Flutter UI framework',
             instructions: 'Full instructions that should NOT appear in lite mode',
             tools: [],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -166,7 +165,7 @@ XML;
             description: 'A test',
             instructions: 'Should not appear',
             tools: [],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -192,7 +191,7 @@ XML;
             description: 'Has missing tool',
             instructions: 'Fail',
             tools: ['NonExistentToolClass'],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -217,7 +216,7 @@ XML;
             description: 'A test skill',
             instructions: 'Do the test',
             tools: [],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -251,7 +250,7 @@ XML;
             description: 'Desc A',
             instructions: 'Instruction A',
             tools: [],
-            triggers: []
+
         );
 
         $skill2 = new Skill(
@@ -259,7 +258,7 @@ XML;
             description: 'Desc B',
             instructions: 'Instruction B',
             tools: [],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -289,7 +288,7 @@ XML;
             description: 'A test skill',
             instructions: 'Do the test',
             tools: [],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')
@@ -322,7 +321,7 @@ XML;
             description: 'Has tool A',
             instructions: 'Use tool A',
             tools: [$toolClassA],
-            triggers: []
+
         );
 
         $skill2 = new Skill(
@@ -330,7 +329,7 @@ XML;
             description: 'Has tool B',
             instructions: 'Use tool B',
             tools: [$toolClassB],
-            triggers: []
+
         );
 
         $discovery->shouldReceive('resolve')

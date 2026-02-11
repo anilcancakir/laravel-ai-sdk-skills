@@ -29,16 +29,14 @@ class ListSkillsToolTest extends TestCase
             name: 'git-master',
             description: 'Git operations',
             instructions: 'Use git...',
-            tools: [],
-            triggers: ['git', 'commit']
+            tools: []
         );
 
         $skill2 = new Skill(
             name: 'search-docs',
             description: 'Search documentation',
             instructions: 'Search docs...',
-            tools: [],
-            triggers: ['search', 'find']
+            tools: []
         );
 
         $registry->shouldReceive('available')
@@ -60,14 +58,14 @@ class ListSkillsToolTest extends TestCase
         $result = $tool->handle(new Request([]));
 
         // Assert
-        $this->assertStringContainsString('| Name | Description | Triggers | Status |', (string) $result);
-        $this->assertStringContainsString('|---|---|---|---|', (string) $result);
+        $this->assertStringContainsString('| Name | Description | Status |', (string) $result);
+        $this->assertStringContainsString('|---|---|---|', (string) $result);
 
         // Check skill 1 (Loaded)
-        $this->assertStringContainsString('| git-master | Git operations | git, commit | Loaded |', (string) $result);
+        $this->assertStringContainsString('| git-master | Git operations | Loaded |', (string) $result);
 
         // Check skill 2 (Available)
-        $this->assertStringContainsString('| search-docs | Search documentation | search, find | Available |', (string) $result);
+        $this->assertStringContainsString('| search-docs | Search documentation | Available |', (string) $result);
     }
 
     public function test_it_handles_no_skills_available(): void
@@ -115,16 +113,14 @@ class ListSkillsToolTest extends TestCase
             name: 'git-master',
             description: 'Git operations and history',
             instructions: 'Use git...',
-            tools: [],
-            triggers: ['git', 'commit']
+            tools: []
         );
 
         $skill2 = new Skill(
             name: 'search-docs',
             description: 'Search documentation',
             instructions: 'Search docs...',
-            tools: [],
-            triggers: ['search', 'find']
+            tools: []
         );
 
         $registry->shouldReceive('available')
@@ -183,7 +179,7 @@ class ListSkillsToolTest extends TestCase
                 description: "Description {$i}",
                 instructions: 'Instructions...',
                 tools: [],
-                triggers: []
+
             );
         }
 
@@ -213,7 +209,7 @@ class ListSkillsToolTest extends TestCase
             description: 'Git operations',
             instructions: 'Detailed git instructions...',
             tools: [],
-            triggers: []
+
         );
 
         $registry->shouldReceive('available')
@@ -242,7 +238,7 @@ class ListSkillsToolTest extends TestCase
             description: 'Git operations',
             instructions: 'Detailed git instructions...',
             tools: [],
-            triggers: []
+
         );
 
         $registry->shouldReceive('available')

@@ -22,7 +22,7 @@ class AgentSkillsProtocolTest extends TestCase
                 description: 'A test skill description',
                 instructions: 'Do something',
                 tools: [],
-                triggers: []
+
             ),
         ]));
 
@@ -53,8 +53,7 @@ class AgentSkillsProtocolTest extends TestCase
             name: 'test-skill',
             description: 'Test description',
             instructions: 'Execute test logic.',
-            tools: [],
-            triggers: []
+            tools: []
         ));
 
         $registry = new SkillRegistry($discovery);

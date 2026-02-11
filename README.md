@@ -68,10 +68,6 @@ Each skill lives in its own directory with a `SKILL.md` file. It uses YAML front
 ---
 name: doc-writer
 description: Writes technical documentation in a friendly style
-version: 1.0.0
-triggers:
-  - write documentation
-  - create docs
 tools:
   - App\Ai\Tools\SearchDocs
 ---
@@ -85,7 +81,6 @@ You are a technical documentation expert. Use clear language and provide code ex
 |:------|:---------|:------------|
 | `name` | Yes | Unique identifier (snake_case). |
 | `description` | Yes | Short explanation used for discovery. |
-| `triggers` | No | Keywords that hint when this skill is relevant. |
 | `tools` | No | Fully qualified class names of tools provided by this skill. |
 
 ## Core Concepts
@@ -139,4 +134,4 @@ The package is built with testability in mind and maintains high coverage.
 php artisan test
 ```
 
-Current status: **99 tests, 240+ assertions** passing with **~93% code coverage**.
+Current status: **84 tests, 200+ assertions** passing.

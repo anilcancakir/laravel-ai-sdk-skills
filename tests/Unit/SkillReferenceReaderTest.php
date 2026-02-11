@@ -50,7 +50,7 @@ class SkillReferenceReaderTest extends TestCase
             description: 'Desc',
             instructions: 'Inst',
             tools: [],
-            triggers: [],
+
             basePath: $tempDir
         );
 
@@ -90,7 +90,7 @@ class SkillReferenceReaderTest extends TestCase
             description: 'Desc',
             instructions: 'Inst',
             tools: [],
-            triggers: [],
+
             basePath: $tempDir
         );
 
@@ -141,7 +141,7 @@ class SkillReferenceReaderTest extends TestCase
             description: 'Desc',
             instructions: 'Inst',
             tools: [],
-            triggers: [],
+
             basePath: null // Remote skills have no local path
         );
 
@@ -171,7 +171,7 @@ class SkillReferenceReaderTest extends TestCase
             description: 'Desc',
             instructions: 'Inst',
             tools: [],
-            triggers: [],
+
             basePath: $tempDir
         );
 
@@ -206,7 +206,7 @@ class SkillReferenceReaderTest extends TestCase
             description: 'Desc',
             instructions: 'Inst',
             tools: [],
-            triggers: [],
+
             basePath: $tempDir
         );
 

@@ -74,20 +74,11 @@ class SkillParser
             return null;
         }
 
-        $triggers = $data['triggers'] ?? [];
-        if (! is_array($triggers)) {
-            Log::warning("SkillParser: 'triggers' must be an array.");
-
-            return null;
-        }
-
         return new Skill(
             name: $data['name'],
             description: $data['description'],
             instructions: $body,
             tools: $tools,
-            triggers: $triggers,
-            version: isset($data['version']) ? (string) $data['version'] : null,
             basePath: $basePath,
         );
     }

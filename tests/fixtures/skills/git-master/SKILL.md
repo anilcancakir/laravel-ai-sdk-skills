@@ -1,12 +1,6 @@
 ---
 name: git-master
 description: Git operations expert — atomic commits, rebase, history search
-version: 1.0.0
-triggers:
-  - commit
-  - rebase
-  - squash
-  - git history
 tools:
   - App\Ai\Tools\GitCommit
   - App\Ai\Tools\GitLog

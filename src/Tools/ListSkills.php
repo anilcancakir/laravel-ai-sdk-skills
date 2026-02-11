@@ -40,7 +40,7 @@ class ListSkills implements Tool
      */
     public function description(): Stringable|string
     {
-        $baseDescription = 'List all available skills that can be loaded to provide specialized capabilities. Returns a table of skills with their descriptions, triggers, and current status.';
+        $baseDescription = 'List all available skills that can be loaded to provide specialized capabilities. Returns a table of skills with their descriptions and current status.';
 
         $availableSkills = $this->registry->available();
 
@@ -104,18 +104,16 @@ class ListSkills implements Tool
             }
 
             $status = isset($loaded[$slug]) ? 'Loaded' : 'Available';
-            $triggers = implode(', ', $skill->triggers);
 
             // Sanitize pipe characters in content to prevent breaking markdown table
             $name = str_replace('|', '\|', $skill->name);
             $desc = str_replace('|', '\|', $skill->description);
-            $triggers = str_replace('|', '\|', $triggers);
 
-            $rows[] = "| {$name} | {$desc} | {$triggers} | {$status} |";
+            $rows[] = "| {$name} | {$desc} | {$status} |";
         }
 
-        $header = '| Name | Description | Triggers | Status |';
-        $divider = '|---|---|---|---|';
+        $header = '| Name | Description | Status |';
+        $divider = '|---|---|---|';
 
         if (empty($rows)) {
             return 'No skills found'.($filter ? " matching filter '{$filter}'" : '').'.';

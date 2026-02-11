@@ -17,8 +17,6 @@ readonly class Skill
      * @param  string  $description  The description of the skill.
      * @param  string  $instructions  The instructions for the AI to follow.
      * @param  array  $tools  The list of tools available for this skill.
-     * @param  array  $triggers  The list of keywords that trigger this skill.
-     * @param  string|null  $version  The version of the skill.
      * @param  string|null  $basePath  The absolute path to the skill's directory.
      * @return void
      */
@@ -27,8 +25,6 @@ readonly class Skill
         public string $description,
         public string $instructions,
         public array $tools,
-        public array $triggers,
-        public ?string $version = null,
         public ?string $basePath = null,
     ) {}
 
@@ -46,23 +42,6 @@ readonly class Skill
     public function hasTools(): bool
     {
         return count($this->tools) > 0;
-    }
-
-    /**
-     * Determine if the skill matches the given input trigger.
-     *
-     * @param  string  $input  The user input to check against triggers.
-     */
-    public function matchesTrigger(string $input): bool
-    {
-        if (empty($this->triggers)) {
-            return false;
-        }
-
-        return Str::contains(
-            Str::lower($input),
-            array_map(fn ($trigger) => Str::lower($trigger), $this->triggers)
-        );
     }
 
     /**
