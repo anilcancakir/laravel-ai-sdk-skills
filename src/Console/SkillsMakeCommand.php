@@ -4,7 +4,6 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
 
 /**
  * Command to create a new AI skill.
@@ -54,8 +53,8 @@ class SkillsMakeCommand extends Command
             : $this->defaultStub();
 
         $content = str_replace(
-            ['{{ name }}', '{{ description }}', '{{ tool_name }}'],
-            [$name, $description, Str::kebab($name)],
+            ['{{ name }}', '{{ description }}'],
+            [$name, $description],
             $stub
         );
 
