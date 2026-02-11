@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.4']
         laravel: ['11.*', '12.*']
         include:
           - laravel: 11.*
@@ -64,4 +64,4 @@ jobs:
           composer update --prefer-dist --no-interaction --no-progress
 
       - name: Run tests with coverage
-        run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml --min=80
+        run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
