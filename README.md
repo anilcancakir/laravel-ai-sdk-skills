@@ -3,25 +3,20 @@
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Creating Skills](#creating-skills)
-    - [Skill File Structure](#skill-file-structure)
-    - [Artisan Commands](#artisan-commands)
-- [Using Skills in Agents](#using-skills-in-agents)
-    - [The Skillable Trait](#the-skillable-trait)
-    - [Loading Skills by Path](#loading-skills-by-path)
-- [Configuration](#configuration)
-    - [Discovery Mode](#discovery-mode)
-- [Agent Skills Protocol](#agent-skills-protocol)
-    - [Progressive Disclosure](#progressive-disclosure)
-    - [Tool Naming Convention](#tool-naming-convention)
-    - [Canonical XML Format](#canonical-xml-format)
-- [How It Works](#how-it-works)
+- [The Skill Format](#the-skill-format)
+- [Core Concepts](#core-concepts)
+  - [Progressive Disclosure](#progressive-disclosure)
+  - [Discovery Modes](#discovery-modes)
+  - [Lite vs Full Mode](#lite-vs-full-mode)
+- [Artisan Commands](#artisan-commands)
+- [Remote Discovery Protocol](#remote-discovery-protocol)
+- [Built-in Tools](#built-in-tools)
 - [Testing](#testing)
 
 <a name="introduction"></a>
 ## Introduction
 
-This package extends Laravel AI SDK with a high-performance skill system. Skills are reusable capability modules that provide instructions, tools, and context to your AI agents through a **Progressive Disclosure** mechanism.
+This package extends the Laravel AI SDK with a high-performance skill system. Skills are reusable capability modules that provide instructions, tools, and context to your AI agents through a **Progressive Disclosure** mechanism.
 
 Instead of embedding all logic in your agent class or bloating the context window with unused instructions, you define skills as separate markdown files. Each skill encapsulates its own instructions and tools. Agents discover what's available and load only what they need during the conversation.
 
@@ -34,7 +29,7 @@ Install the package via composer:
 composer require anilcancakir/laravel-ai-sdk-skills
 ```
 
-The service provider registers automatically. You should publish the configuration file:
+The service provider registers automatically. You should publish the configuration file to customize discovery paths and modes:
 
 ```shell
 php artisan vendor:publish --provider="AnilcanCakir\LaravelAiSdkSkills\SkillsServiceProvider"
@@ -43,13 +38,13 @@ php artisan vendor:publish --provider="AnilcanCakir\LaravelAiSdkSkills\SkillsSer
 <a name="quick-start"></a>
 ## Quick Start
 
-Generate a new skill using the Artisan command:
+Let's look at how quickly you can add a new capability to your agent. First, generate a new skill:
 
 ```shell
 php artisan skills:make doc-writer --description="Writes technical documentation"
 ```
 
-This creates `resources/skills/doc-writer/SKILL.md`. Now, add the `Skillable` trait to your agent:
+This creates `resources/skills/doc-writer/SKILL.md`. Now, add the `Skillable` trait to your agent and register the skill:
 
 ```php
 <?php
@@ -60,13 +55,18 @@ use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasTools;
 
-class MyAssistant implements Agent, HasTools
+class Assistant implements Agent, HasTools
 {
     use Skillable;
 
     public function skills(): iterable
     {
         return ['doc-writer'];
+    }
+
+    public function instructions(): string
+    {
+        return "Base instructions...\n\n" . $this->skillInstructions();
     }
 
     public function tools(): iterable
@@ -76,15 +76,12 @@ class MyAssistant implements Agent, HasTools
 }
 ```
 
-By calling `$this->skillTools()`, your agent automatically gains access to the `list_skills`, `skill`, and `skill_read` meta-tools, enabling dynamic capability discovery.
+By calling `$this->skillTools()`, your agent automatically gains access to meta-tools like `list_skills` and `skill`, enabling dynamic discovery.
 
-<a name="creating-skills"></a>
-## Creating Skills
+<a name="the-skill-format"></a>
+## The Skill Format
 
-<a name="skill-file-structure"></a>
-### Skill File Structure
-
-Each skill lives in its own directory with a `SKILL.md` file. The file uses YAML frontmatter for metadata and markdown for the actual instructions:
+Each skill lives in its own directory with a `SKILL.md` file. It uses YAML frontmatter for metadata and standard markdown for the instructions.
 
 ```markdown
 ---
@@ -96,194 +93,115 @@ triggers:
   - create docs
 tools:
   - App\Ai\Tools\SearchDocs
-mcp:
-  - filesystem
-constraints:
-  - model: gemini-2.0-flash
 ---
 
 # Documentation Writer
 
-You are a technical documentation expert. When writing docs:
-
-1. Use clear, concise language.
-2. Include code examples.
-3. Always use canonical XML tags for sections.
+You are a technical documentation expert. Use clear language and provide code examples.
 ```
 
 | Field | Required | Description |
 |:------|:---------|:------------|
-| `name` | Yes | Unique identifier (snake_case recommended). |
-| `description` | Yes | Short explanation for progressive disclosure. |
-| `version` | No | Semantic version of the skill. |
+| `name` | Yes | Unique identifier (snake_case). |
+| `description` | Yes | Short explanation used for discovery. |
 | `triggers` | No | Keywords that hint when this skill is relevant. |
 | `tools` | No | Fully qualified class names of tools provided by this skill. |
-| `mcp` | No | List of MCP (Model Context Protocol) dependencies. |
-| `constraints` | No | List of runtime requirements (e.g., model versions). |
 
-<a name="artisan-commands"></a>
-### Artisan Commands
-
-Use the `make` command to scaffold new skills quickly:
-
-```shell
-php artisan skills:make my-skill
-```
-
-You can also provide a description directly:
-
-```shell
-php artisan skills:make code-reviewer --description="Reviews code for best practices"
-```
-
-<a name="using-skills-in-agents"></a>
-## Using Skills in Agents
-
-<a name="the-skillable-trait"></a>
-### The Skillable Trait
-
-The `Skillable` trait handles the heavy lifting of loading and managing skills.
-
-```php
-public function instructions(): string
-{
-    return "Base instructions here...\n\n" . $this->skillInstructions();
-}
-
-public function tools(): iterable
-{
-    return array_merge(
-        [new NativeTool],
-        $this->skillTools()
-    );
-}
-```
-
-| Method | Returns | Description |
-|:-------|:--------|:------------|
-| `skillTools()` | `array` | Returns `list_skills`, `skill`, `skill_read`, and any tools from pre-loaded skills. |
-| `skillInstructions(?string $mode)` | `string` | Combined instructions from loaded skills. Pass `'lite'` or `'full'` to override config. |
-| `skills()` | `iterable` | Define which skills should be available to this agent. |
-
-The `skillInstructions()` method accepts an optional `$mode` parameter to override the global `discovery_mode` config per-agent:
-
-```php
-public function instructions(): string
-{
-    // Uses global config (default: 'lite')
-    return "Base instructions...\n\n" . $this->skillInstructions();
-}
-
-// Or override per-agent to always load full instructions
-public function instructions(): string
-{
-    return "Base instructions...\n\n" . $this->skillInstructions('full');
-}
-```
-
-<a name="loading-skills-by-path"></a>
-### Loading Skills by Path
-
-While loading by name is standard, you can also load skills by their absolute path:
-
-```php
-public function skills(): iterable
-{
-    return [
-        'doc-writer',
-        resource_path('custom/internal-skill'),
-    ];
-}
-```
-
-<a name="configuration"></a>
-## Configuration
-
-The `config/skills.php` file allows you to control the discovery process and global state.
-
-```php
-return [
-    // Globally enable or disable the skill system
-    'enabled' => env('SKILLS_ENABLED', true),
-
-    // Discovery mode: 'lite' or 'full'
-    'discovery_mode' => env('SKILLS_DISCOVERY_MODE', 'lite'),
-
-    // Skill source mode: 'local', 'remote', or 'dual'
-    'mode' => env('SKILLS_MODE', 'local'),
-
-    // Directories where skills are discovered
-    'paths' => [
-        resource_path('skills'),
-    ],
-
-    // Remote discovery (only used when mode is 'remote' or 'dual')
-    'remote' => [
-        'url' => env('SKILLS_REMOTE_URL'),
-        'token' => env('SKILLS_REMOTE_TOKEN'),
-        'timeout' => env('SKILLS_REMOTE_TIMEOUT', 5),
-    ],
-];
-```
-
-> [!NOTE]
-> When `enabled` is set to `false`, the `Skillable` trait gracefully returns empty tools and instructions without triggering discovery.
-
-<a name="discovery-mode"></a>
-### Discovery Mode
-
-The `discovery_mode` setting controls how much skill content is injected into the agent's context when skills are pre-loaded via the `skills()` method.
-
-| Mode | `skillInstructions()` Output | Token Usage | Agent Must Call `skill()` |
-|:-----|:----------------------------|:------------|:--------------------------|
-| `lite` | `<skill name="..." description="..." />` | Minimal | Yes, to get full instructions |
-| `full` | `<skill name="...">full SKILL.md content</skill>` | Higher | No, instructions already loaded |
-
-**Lite mode** (default) follows the Progressive Disclosure principle — agents see only what each skill is about. When the agent needs the full instructions, it calls the `skill('skill-name')` tool to load them on demand. This saves tokens for agents that may not use every pre-loaded skill.
-
-**Full mode** eagerly injects the complete SKILL.md content for every pre-loaded skill. Best for agents with a focused skill set where you know every skill will be used.
-
-You can override the global setting per-agent by passing a mode to `skillInstructions()`:
-
-```php
-// Always load full instructions for this specific agent
-public function instructions(): string
-{
-    return "You are an expert...\n\n" . $this->skillInstructions('full');
-}
-```
-
-<a name="agent-skills-protocol"></a>
-## Agent Skills Protocol
-
-The package implements a specialized protocol to ensure predictable interactions between the LLM and your codebase.
+<a name="core-concepts"></a>
+## Core Concepts
 
 <a name="progressive-disclosure"></a>
 ### Progressive Disclosure
 
-To prevent context window bloat, the system uses progressive disclosure. The `list_skills` tool doesn't just list names; its description dynamically injects an `<available_skills>` XML block. 
+To prevent context window bloat, we use progressive disclosure. The AI only sees a list of available skills and their short descriptions. It "discovers" the full instructions only when it decides a skill is necessary for the current task.
 
-This allows the AI to see exactly what each skill does before deciding to load it. The `maxDescriptionSkills` config (default: 50) prevents the tool description itself from becoming too large.
+<a name="discovery-modes"></a>
+### Discovery Modes
 
-<a name="tool-naming-convention"></a>
-### Tool Naming Convention
+You can configure where your skills come from in `config/skills.php`:
 
-All skill-related tools follow a strict `snake_case` naming convention. Core tools provided:
+- **Local**: Loads skills from your local `resources/skills` directory.
+- **Remote**: Fetches skills from a remote JSON API.
+- **Dual**: Searches both local and remote sources.
 
-- `list_skills`: Discovery and metadata disclosure.
-- `skill`: Dynamic loader that fetches instructions and tools.
-- `skill_read`: Reads supplementary files from within a loaded skill's directory.
+<a name="lite-vs-full-mode"></a>
+### Lite vs Full Mode
+
+The `discovery_mode` controls how much information is injected into the initial prompt:
+
+- **Lite** (Default): Injects only `<skill name="..." description="..." />` tags. Minimal tokens.
+- **Full**: Injects the complete `SKILL.md` content immediately. Best for agents with very specific, small skill sets.
+
+<a name="artisan-commands"></a>
+## Artisan Commands
+
+We've provided a few commands to help you manage your skills:
+
+```shell
+# Create a new skill scaffold
+php artisan skills:make my-skill
+
+# List all discovered skills in a table
+php artisan skills:list
+
+# Flush the skill discovery cache
+php artisan skills:clear
+```
+
+<a name="remote-discovery-protocol"></a>
+## Remote Discovery Protocol
+
+When using `remote` or `dual` mode, the package expects your remote server to return a specific JSON structure. This is perfect for sharing skills across multiple microservices.
+
+Your API should return one of these formats:
+
+```json
+{
+    "skills": [
+        {
+            "name": "cloud-expert",
+            "description": "Manages AWS resources",
+            "content": "--- \n name: cloud-expert \n --- \n Full markdown here..."
+        }
+    ]
+}
+```
+
+Or a more structured format where the package handles the assembly:
+
+```json
+{
+    "skills": [
+        {
+            "name": "cloud-expert",
+            "description": "Manages AWS resources",
+            "instructions": "Full markdown instructions...",
+            "tools": ["App\\Tools\\AwsTool"],
+            "version": "1.2.0"
+        }
+    ]
+}
+```
+
+<a name="built-in-tools"></a>
+## Built-in Tools
+
+When you use the `Skillable` trait, your agent gets these tools automatically:
+
+- `list_skills`: Returns a list of all available skills the agent can load.
+- `skill`: Loads the full instructions and tools for a specific skill into the conversation.
+- `skill_read`: Safely reads supplementary files (like `/docs/api.md`) from within a loaded skill's directory.
+
+> [!NOTE]
+> The `skill_read` tool is restricted to the skill's own directory, ensuring your agent can't wander off into sensitive parts of your filesystem.
 
 <a name="testing"></a>
 ## Testing
 
-The package maintains high test coverage to ensure reliability across Laravel versions.
+The package is built with testability in mind and maintains high coverage.
 
 ```shell
-php artisan test plugins/laravel-ai-sdk-skills/tests/
+php artisan test
 ```
 
-Current status: **70 tests, 181 assertions** passing.
-
-> [!NOTE]
-> Phase 2 features including native MCP execution and sub-agent delegation are currently in the roadmap.
+Current status: **99 tests, 240+ assertions** passing with **~93% code coverage**.
