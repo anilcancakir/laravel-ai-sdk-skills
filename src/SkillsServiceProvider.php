@@ -26,11 +26,7 @@ class SkillsServiceProvider extends ServiceProvider
 
         $this->app->singleton(SkillDiscovery::class, function ($app) {
             return new SkillDiscovery(
-                paths: config('skills.paths', [app_path('Skills')]),
-                mode: config('skills.mode', 'local'),
-                remoteUrl: config('skills.remote.url'),
-                remoteToken: config('skills.remote.token'),
-                remoteTimeout: config('skills.remote.timeout', 5),
+                paths: config('skills.paths', [resource_path('skills')]),
                 cacheEnabled: ! $app->environment('local', 'testing'),
             );
         });

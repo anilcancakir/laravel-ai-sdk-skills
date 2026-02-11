@@ -28,21 +28,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Skill Source Mode
-    |--------------------------------------------------------------------------
-    |
-    | Defines where skills are discovered from.
-    |
-    | 'local':  Only scan local filesystem paths.
-    | 'remote': Only fetch skills from a remote API.
-    | 'dual':   Merge skills from both local and remote sources.
-    |
-    */
-
-    'mode' => env('SKILLS_MODE', 'local'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Skill Paths
     |--------------------------------------------------------------------------
     |
@@ -53,21 +38,5 @@ return [
 
     'paths' => [
         resource_path('skills'),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Remote Discovery
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for fetching skills from a remote API.
-    | Only used when mode is 'remote' or 'dual'.
-    |
-    */
-
-    'remote' => [
-        'url' => env('SKILLS_REMOTE_URL'),
-        'token' => env('SKILLS_REMOTE_TOKEN'),
-        'timeout' => env('SKILLS_REMOTE_TIMEOUT', 5),
     ],
 ];
