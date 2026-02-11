@@ -42,3 +42,26 @@ jobs:
 
       - name: Run tests
         run: vendor/bin/phpunit
+
+  coverage:
+    runs-on: ubuntu-latest
+    name: Code Coverage
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip
+          coverage: pcov
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:12.*" "orchestra/testbench:10.*" --no-interaction --no-update
+          composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Run tests with coverage
+        run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml --min=80
