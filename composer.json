@@ -44,6 +44,11 @@
             ]
         }
     },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "lint": "vendor/bin/pint --test",
+        "format": "vendor/bin/pint"
+    },
     "config": {
         "sort-packages": true
     },
