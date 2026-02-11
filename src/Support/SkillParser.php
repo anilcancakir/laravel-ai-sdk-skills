@@ -15,11 +15,10 @@ class SkillParser
      * Parse the given markdown content into a Skill instance.
      *
      * @param  string  $content  The markdown content to parse.
-     * @param  string  $source  The source of the skill.
      * @param  string|null  $basePath  The absolute path to the skill's directory.
      * @return Skill|null The parsed skill or null on failure.
      */
-    public static function parse(string $content, string $source = 'local', ?string $basePath = null): ?Skill
+    public static function parse(string $content, ?string $basePath = null): ?Skill
     {
         $content = str_replace(["\r\n", "\r"], "\n", $content);
 
@@ -82,20 +81,6 @@ class SkillParser
             return null;
         }
 
-        $mcp = $data['mcp'] ?? [];
-        if (! is_array($mcp)) {
-            Log::warning("SkillParser: 'mcp' must be an array.");
-
-            return null;
-        }
-
-        $constraints = $data['constraints'] ?? [];
-        if (! is_array($constraints)) {
-            Log::warning("SkillParser: 'constraints' must be an array.");
-
-            return null;
-        }
-
         return new Skill(
             name: $data['name'],
             description: $data['description'],
@@ -103,9 +88,6 @@ class SkillParser
             tools: $tools,
             triggers: $triggers,
             version: isset($data['version']) ? (string) $data['version'] : null,
-            mcp: $mcp,
-            constraints: $constraints,
-            source: $source,
             basePath: $basePath,
         );
     }
