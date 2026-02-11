@@ -74,4 +74,81 @@ class SkillLoaderToolTest extends TestCase
         $this->assertStringNotContainsString('<skill', (string) $result);
         $this->assertFalse($registry->isLoaded('unknown-skill'));
     }
+
+    public function test_it_includes_reference_files_in_output(): void
+    {
+        $registry = Mockery::mock(SkillRegistry::class);
+        $tempDir = sys_get_temp_dir().'/skill_loader_test_'.uniqid();
+        mkdir($tempDir);
+        mkdir($tempDir.'/references');
+
+        try {
+            file_put_contents($tempDir.'/references/utilities.md', 'utils');
+            file_put_contents($tempDir.'/references/theme.md', 'theme');
+
+            $skill = new Skill(
+                name: 'Test Skill',
+                description: 'Description',
+                instructions: 'Do this.',
+                tools: [],
+                triggers: [],
+                basePath: $tempDir
+            );
+
+            $registry->shouldReceive('load')->with('test-skill');
+            $registry->shouldReceive('get')->with('test-skill')->andReturn($skill);
+
+            $tool = new SkillLoader($registry);
+            $result = $tool->handle(new Request(['name' => 'test-skill']));
+
+            $this->assertStringContainsString('<skill_references skill="Test Skill">', (string) $result);
+            $this->assertStringContainsString('references/utilities.md', (string) $result);
+            $this->assertStringContainsString('references/theme.md', (string) $result);
+            $this->assertStringContainsString('skill_read', (string) $result);
+        } finally {
+            $this->removeDirectory($tempDir);
+        }
+    }
+
+    public function test_it_does_not_include_references_when_none_exist(): void
+    {
+        $registry = Mockery::mock(SkillRegistry::class);
+        $skill = new Skill(
+            name: 'Test Skill',
+            description: 'Description',
+            instructions: 'Do this.',
+            tools: [],
+            triggers: [],
+            basePath: null
+        );
+
+        $registry->shouldReceive('load')->with('test-skill');
+        $registry->shouldReceive('get')->with('test-skill')->andReturn($skill);
+
+        $tool = new SkillLoader($registry);
+        $result = $tool->handle(new Request(['name' => 'test-skill']));
+
+        $this->assertStringNotContainsString('<skill_references', (string) $result);
+    }
+
+    private function removeDirectory(string $path): void
+    {
+        if (! is_dir($path)) {
+            return;
+        }
+
+        $files = scandir($path);
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+            $filePath = $path.DIRECTORY_SEPARATOR.$file;
+            if (is_dir($filePath)) {
+                $this->removeDirectory($filePath);
+            } else {
+                unlink($filePath);
+            }
+        }
+        rmdir($path);
+    }
 }

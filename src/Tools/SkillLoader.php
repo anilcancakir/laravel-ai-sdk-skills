@@ -63,11 +63,32 @@ class SkillLoader implements Tool
         $this->registry->load($name);
 
         if ($skill = $this->registry->get($name)) {
-            return sprintf(
+            $output = sprintf(
                 "<skill name=\"%s\">\n%s\n</skill>",
                 $skill->name,
                 trim($skill->instructions)
             );
+
+            $referenceFiles = $skill->referenceFiles();
+
+            if (! empty($referenceFiles)) {
+                $fileList = implode("\n", array_map(
+                    fn (string $file) => "  - {$file}",
+                    $referenceFiles
+                ));
+
+                $exampleFile = $referenceFiles[0];
+
+                $output .= "\n\n<skill_references skill=\"{$skill->name}\">\n"
+                    ."Available reference files (use `skill_read` tool to read them):\n"
+                    ."{$fileList}\n\n"
+                    ."To read a reference file, call skill_read with BOTH required parameters:\n"
+                    ."  skill: \"{$skill->name}\"\n"
+                    ."  file: \"{$exampleFile}\"\n"
+                    .'</skill_references>';
+            }
+
+            return $output;
         }
 
         return "Skill [{$name}] not found.";

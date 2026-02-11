@@ -2,6 +2,7 @@
 
 namespace AnilcanCakir\LaravelAiSdkSkills\Support;
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
 
 /**
@@ -62,5 +63,50 @@ readonly class Skill
             Str::lower($input),
             array_map(fn ($trigger) => Str::lower($trigger), $this->triggers)
         );
+    }
+
+    /**
+     * Determine if the skill has reference files available.
+     */
+    public function hasReferenceFiles(): bool
+    {
+        return count($this->referenceFiles()) > 0;
+    }
+
+    /**
+     * Get the list of reference files available in the skill's directory.
+     *
+     * Scans for all non-SKILL.md files (markdown, text, yaml, json)
+     * within the skill's base directory recursively.
+     *
+     * @return array<int, string> Relative file paths.
+     */
+    public function referenceFiles(): array
+    {
+        if ($this->basePath === null || ! is_dir($this->basePath)) {
+            return [];
+        }
+
+        $filesystem = new Filesystem;
+        $allowedExtensions = ['md', 'txt', 'yaml', 'yml', 'json'];
+        $files = [];
+
+        foreach ($filesystem->allFiles($this->basePath) as $file) {
+            if (! in_array(strtolower($file->getExtension()), $allowedExtensions, true)) {
+                continue;
+            }
+
+            $relativePath = $file->getRelativePathname();
+
+            if ($relativePath === 'SKILL.md') {
+                continue;
+            }
+
+            $files[] = $relativePath;
+        }
+
+        sort($files);
+
+        return $files;
     }
 }

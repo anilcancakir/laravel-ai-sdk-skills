@@ -22,15 +22,17 @@ class SkillReferenceReader implements Tool
     public function description(): Stringable|string
     {
         return 'Read a reference file from a loaded skill\'s directory. '
-            .'Use this to access supplementary content (e.g. references/utilities.md) '
-            .'that a skill mentions in its instructions. The skill must be loaded first via the "skill" tool.';
+            .'Requires BOTH parameters: "skill" (the skill slug, e.g. "wind-ui") '
+            .'AND "file" (the relative path, e.g. "references/utilities.md"). '
+            .'The skill must be loaded first via the "skill" tool. '
+            .'Available reference files are listed when a skill is loaded.';
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'skill' => $schema->string()->description('The name/slug of the loaded skill (e.g. "wind-ui")')->required(),
-            'file' => $schema->string()->description('Relative file path within the skill directory (e.g. "references/utilities.md")')->required(),
+            'skill' => $schema->string()->description('REQUIRED. The name/slug of the already-loaded skill (e.g. "wind-ui", "git-helper"). Must match the skill name used when loading.')->required(),
+            'file' => $schema->string()->description('REQUIRED. Relative file path within the skill directory (e.g. "references/utilities.md", "references/theme.md"). See the file list from the skill loading response.')->required(),
         ];
     }
 
