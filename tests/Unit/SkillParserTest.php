@@ -101,18 +101,13 @@ MD;
         $this->assertNull(SkillParser::parse($markdown));
     }
 
-    public function test_it_parses_version_mcp_and_constraints()
+    public function test_it_parses_version()
     {
         $markdown = <<<'MD'
 ---
 name: full-skill
-description: A skill with everything
+description: A skill with version
 version: 1.2.3
-mcp:
-  - name: filesystem
-    args: { path: /tmp }
-constraints:
-  - OS: Linux
 ---
 Instructions.
 MD;
@@ -120,8 +115,6 @@ MD;
         $skill = SkillParser::parse($markdown);
 
         $this->assertEquals('1.2.3', $skill->version);
-        $this->assertEquals([['name' => 'filesystem', 'args' => ['path' => '/tmp']]], $skill->mcp);
-        $this->assertEquals([['OS' => 'Linux']], $skill->constraints);
     }
 
     public function test_it_defaults_missing_fields_to_null_or_empty_array()
@@ -137,8 +130,6 @@ MD;
         $skill = SkillParser::parse($markdown);
 
         $this->assertNull($skill->version);
-        $this->assertEquals([], $skill->mcp);
-        $this->assertEquals([], $skill->constraints);
     }
 
     public function test_it_returns_null_on_missing_description()
@@ -187,38 +178,6 @@ MD;
         $this->assertNull(SkillParser::parse($markdown));
     }
 
-    public function test_it_returns_null_when_mcp_is_not_array()
-    {
-        Log::shouldReceive('warning')->once();
-
-        $markdown = <<<'MD'
----
-name: bad-mcp
-description: A skill
-mcp: "string"
----
-Body
-MD;
-
-        $this->assertNull(SkillParser::parse($markdown));
-    }
-
-    public function test_it_returns_null_when_constraints_is_not_array()
-    {
-        Log::shouldReceive('warning')->once();
-
-        $markdown = <<<'MD'
----
-name: bad-constraints
-description: A skill
-constraints: 42
----
-Body
-MD;
-
-        $this->assertNull(SkillParser::parse($markdown));
-    }
-
     public function test_it_normalizes_crlf_line_endings()
     {
         $markdownLf = "---\nname: crlf-test\ndescription: CRLF skill\n---\nInstructions here.";
@@ -252,20 +211,19 @@ MD;
         $this->assertEquals('Body content.', $skill->instructions);
     }
 
-    public function test_it_passes_source_and_basepath_to_skill()
+    public function test_it_passes_basepath_to_skill()
     {
         $markdown = <<<'MD'
 ---
-name: remote-skill
-description: A remote skill
+name: skill
+description: A skill
 ---
 Instructions.
 MD;
 
-        $skill = SkillParser::parse($markdown, 'remote', '/custom/path');
+        $skill = SkillParser::parse($markdown, '/custom/path');
 
         $this->assertInstanceOf(Skill::class, $skill);
-        $this->assertEquals('remote', $skill->source);
         $this->assertEquals('/custom/path', $skill->basePath);
     }
 

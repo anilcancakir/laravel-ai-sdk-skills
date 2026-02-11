@@ -60,14 +60,14 @@ class ListSkillsToolTest extends TestCase
         $result = $tool->handle(new Request([]));
 
         // Assert
-        $this->assertStringContainsString('| Name | Description | Triggers | Source | Status |', (string) $result);
-        $this->assertStringContainsString('|---|---|---|---|---|', (string) $result);
+        $this->assertStringContainsString('| Name | Description | Triggers | Status |', (string) $result);
+        $this->assertStringContainsString('|---|---|---|---|', (string) $result);
 
         // Check skill 1 (Loaded)
-        $this->assertStringContainsString('| git-master | Git operations | git, commit | Local | Loaded |', (string) $result);
+        $this->assertStringContainsString('| git-master | Git operations | git, commit | Loaded |', (string) $result);
 
         // Check skill 2 (Available)
-        $this->assertStringContainsString('| search-docs | Search documentation | search, find | Local | Available |', (string) $result);
+        $this->assertStringContainsString('| search-docs | Search documentation | search, find | Available |', (string) $result);
     }
 
     public function test_it_handles_no_skills_available(): void

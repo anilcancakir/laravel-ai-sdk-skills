@@ -111,8 +111,6 @@ class SkillTest extends TestCase
         );
 
         $this->assertNull($skill->version);
-        $this->assertEquals([], $skill->mcp);
-        $this->assertEquals([], $skill->constraints);
     }
 
     public function test_it_can_be_instantiated_with_version(): void
@@ -129,35 +127,17 @@ class SkillTest extends TestCase
         $this->assertEquals('2.0.0', $skill->version);
     }
 
-    public function test_it_can_be_instantiated_with_mcp_and_constraints(): void
+    public function test_basepath_property(): void
     {
         $skill = new Skill(
-            name: 'Test',
-            description: 'Test',
-            instructions: 'Test',
-            tools: [],
-            triggers: [],
-            mcp: ['server' => 'stdio'],
-            constraints: ['model' => 'claude']
-        );
-
-        $this->assertEquals(['server' => 'stdio'], $skill->mcp);
-        $this->assertEquals(['model' => 'claude'], $skill->constraints);
-    }
-
-    public function test_source_and_basepath_properties(): void
-    {
-        $skill = new Skill(
-            name: 'Remote Skill',
+            name: 'Local Skill',
             description: 'desc',
             instructions: 'inst',
             tools: [],
             triggers: [],
-            source: 'remote',
             basePath: '/var/skills/my-skill'
         );
 
-        $this->assertEquals('remote', $skill->source);
         $this->assertEquals('/var/skills/my-skill', $skill->basePath);
     }
 
