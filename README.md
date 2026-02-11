@@ -96,11 +96,7 @@ To prevent context window bloat, we use progressive disclosure. The AI only sees
 
 ### Discovery Modes
 
-You can configure where your skills come from in `config/skills.php`:
-
-- **Local**: Loads skills from your local `resources/skills` directory.
-- **Remote**: Fetches skills from a remote JSON API.
-- **Dual**: Searches both local and remote sources.
+By default, skills are loaded from your local `resources/skills` directory. You can configure the search paths in `config/skills.php`.
 
 ### Lite vs Full Mode
 
@@ -122,40 +118,6 @@ php artisan skills:list
 
 # Flush the skill discovery cache
 php artisan skills:clear
-```
-
-## Remote Discovery Protocol
-
-When using `remote` or `dual` mode, the package expects your remote server to return a specific JSON structure. This is perfect for sharing skills across multiple microservices.
-
-Your API should return one of these formats:
-
-```json
-{
-    "skills": [
-        {
-            "name": "cloud-expert",
-            "description": "Manages AWS resources",
-            "content": "--- \n name: cloud-expert \n --- \n Full markdown here..."
-        }
-    ]
-}
-```
-
-Or a more structured format where the package handles the assembly:
-
-```json
-{
-    "skills": [
-        {
-            "name": "cloud-expert",
-            "description": "Manages AWS resources",
-            "instructions": "Full markdown instructions...",
-            "tools": ["App\\Tools\\AwsTool"],
-            "version": "1.2.0"
-        }
-    ]
-}
 ```
 
 ## Built-in Tools
