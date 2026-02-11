@@ -40,7 +40,7 @@ For the automatic Packagist update to work, you must add the following **Reposit
 1. Go to **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
 2. Add:
    - `PACKAGIST_USERNAME`: Your Packagist username (e.g., `anilcancakir`)
-   - `PACKAGIST_API_TOKEN`: Your API Token from [packagist.org/profile](https://packagist.org/profile)
+   - `PACKAGIST_API_TOKEN`: Your **Safe API Token** (recommended) or Main API Token from [packagist.org/profile](https://packagist.org/profile)
 
 ## Version Guidelines
 
