@@ -140,4 +140,141 @@ MD;
         $this->assertEquals([], $skill->mcp);
         $this->assertEquals([], $skill->constraints);
     }
+
+    public function test_it_returns_null_on_missing_description()
+    {
+        Log::shouldReceive('warning')->once();
+
+        $markdown = <<<'MD'
+---
+name: no-desc
+---
+Body
+MD;
+
+        $this->assertNull(SkillParser::parse($markdown));
+    }
+
+    public function test_it_returns_null_when_tools_is_not_array()
+    {
+        Log::shouldReceive('warning')->once();
+
+        $markdown = <<<'MD'
+---
+name: bad-tools
+description: A skill
+tools: "not-an-array"
+---
+Body
+MD;
+
+        $this->assertNull(SkillParser::parse($markdown));
+    }
+
+    public function test_it_returns_null_when_triggers_is_not_array()
+    {
+        Log::shouldReceive('warning')->once();
+
+        $markdown = <<<'MD'
+---
+name: bad-triggers
+description: A skill
+triggers: "string"
+---
+Body
+MD;
+
+        $this->assertNull(SkillParser::parse($markdown));
+    }
+
+    public function test_it_returns_null_when_mcp_is_not_array()
+    {
+        Log::shouldReceive('warning')->once();
+
+        $markdown = <<<'MD'
+---
+name: bad-mcp
+description: A skill
+mcp: "string"
+---
+Body
+MD;
+
+        $this->assertNull(SkillParser::parse($markdown));
+    }
+
+    public function test_it_returns_null_when_constraints_is_not_array()
+    {
+        Log::shouldReceive('warning')->once();
+
+        $markdown = <<<'MD'
+---
+name: bad-constraints
+description: A skill
+constraints: 42
+---
+Body
+MD;
+
+        $this->assertNull(SkillParser::parse($markdown));
+    }
+
+    public function test_it_normalizes_crlf_line_endings()
+    {
+        $markdownLf = "---\nname: crlf-test\ndescription: CRLF skill\n---\nInstructions here.";
+        $markdownCrlf = "---\r\nname: crlf-test\r\ndescription: CRLF skill\r\n---\r\nInstructions here.";
+
+        $skillLf = SkillParser::parse($markdownLf);
+        $skillCrlf = SkillParser::parse($markdownCrlf);
+
+        $this->assertInstanceOf(Skill::class, $skillLf);
+        $this->assertInstanceOf(Skill::class, $skillCrlf);
+        $this->assertEquals($skillLf->name, $skillCrlf->name);
+        $this->assertEquals($skillLf->description, $skillCrlf->description);
+        $this->assertEquals($skillLf->instructions, $skillCrlf->instructions);
+    }
+
+    public function test_it_strips_yaml_document_end_markers()
+    {
+        $markdown = <<<'MD'
+---
+name: end-marker
+description: Has end marker
+...
+---
+Body content.
+MD;
+
+        $skill = SkillParser::parse($markdown);
+
+        $this->assertInstanceOf(Skill::class, $skill);
+        $this->assertEquals('end-marker', $skill->name);
+        $this->assertEquals('Body content.', $skill->instructions);
+    }
+
+    public function test_it_passes_source_and_basepath_to_skill()
+    {
+        $markdown = <<<'MD'
+---
+name: remote-skill
+description: A remote skill
+---
+Instructions.
+MD;
+
+        $skill = SkillParser::parse($markdown, 'remote', '/custom/path');
+
+        $this->assertInstanceOf(Skill::class, $skill);
+        $this->assertEquals('remote', $skill->source);
+        $this->assertEquals('/custom/path', $skill->basePath);
+    }
+
+    public function test_it_returns_null_when_closing_delimiter_missing()
+    {
+        Log::shouldReceive('warning')->once();
+
+        $markdown = "---\nname: x\ndescription: y\nBody without closing";
+
+        $this->assertNull(SkillParser::parse($markdown));
+    }
 }

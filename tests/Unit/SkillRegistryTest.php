@@ -208,4 +208,147 @@ XML;
 
         $this->assertCount(0, $tools);
     }
+
+    public function test_get_returns_loaded_skill()
+    {
+        $discovery = Mockery::mock(SkillDiscovery::class);
+        $skill = new Skill(
+            name: 'Test Skill',
+            description: 'A test skill',
+            instructions: 'Do the test',
+            tools: [],
+            triggers: []
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('test-skill')
+            ->andReturn($skill);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('test-skill');
+
+        $result = $registry->get('test-skill');
+
+        $this->assertInstanceOf(Skill::class, $result);
+        $this->assertEquals('Test Skill', $result->name);
+    }
+
+    public function test_get_returns_null_for_unloaded_skill()
+    {
+        $discovery = Mockery::mock(SkillDiscovery::class);
+
+        $registry = new SkillRegistry($discovery);
+
+        $this->assertNull($registry->get('nonexistent'));
+    }
+
+    public function test_get_loaded_returns_all_loaded_skills()
+    {
+        $discovery = Mockery::mock(SkillDiscovery::class);
+
+        $skill1 = new Skill(
+            name: 'Skill A',
+            description: 'Desc A',
+            instructions: 'Instruction A',
+            tools: [],
+            triggers: []
+        );
+
+        $skill2 = new Skill(
+            name: 'Skill B',
+            description: 'Desc B',
+            instructions: 'Instruction B',
+            tools: [],
+            triggers: []
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-a')
+            ->andReturn($skill1);
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-b')
+            ->andReturn($skill2);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('skill-a');
+        $registry->load('skill-b');
+
+        $loaded = $registry->getLoaded();
+
+        $this->assertCount(2, $loaded);
+        $this->assertArrayHasKey('skill-a', $loaded);
+        $this->assertArrayHasKey('skill-b', $loaded);
+    }
+
+    public function test_loading_same_skill_twice_is_idempotent()
+    {
+        $discovery = Mockery::mock(SkillDiscovery::class);
+        $skill = new Skill(
+            name: 'Test Skill',
+            description: 'A test skill',
+            instructions: 'Do the test',
+            tools: [],
+            triggers: []
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('test-skill')
+            ->andReturn($skill);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('test-skill');
+        $registry->load('test-skill');
+
+        $this->assertCount(1, $registry->getLoaded());
+    }
+
+    public function test_tools_aggregates_from_multiple_skills()
+    {
+        $discovery = Mockery::mock(SkillDiscovery::class);
+
+        $toolClassA = 'AnilcanCakir\LaravelAiSdkSkills\Tests\Fixtures\TestToolA';
+        if (! class_exists($toolClassA)) {
+            eval('namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Fixtures; class TestToolA {}');
+        }
+
+        $toolClassB = 'AnilcanCakir\LaravelAiSdkSkills\Tests\Fixtures\TestToolB';
+        if (! class_exists($toolClassB)) {
+            eval('namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Fixtures; class TestToolB {}');
+        }
+
+        $skill1 = new Skill(
+            name: 'Skill A',
+            description: 'Has tool A',
+            instructions: 'Use tool A',
+            tools: [$toolClassA],
+            triggers: []
+        );
+
+        $skill2 = new Skill(
+            name: 'Skill B',
+            description: 'Has tool B',
+            instructions: 'Use tool B',
+            tools: [$toolClassB],
+            triggers: []
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-a')
+            ->andReturn($skill1);
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-b')
+            ->andReturn($skill2);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('skill-a');
+        $registry->load('skill-b');
+
+        $tools = $registry->tools();
+
+        $this->assertCount(2, $tools);
+        $this->assertInstanceOf($toolClassA, $tools[0]);
+        $this->assertInstanceOf($toolClassB, $tools[1]);
+    }
 }

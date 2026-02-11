@@ -144,4 +144,32 @@ class SkillTest extends TestCase
         $this->assertEquals(['server' => 'stdio'], $skill->mcp);
         $this->assertEquals(['model' => 'claude'], $skill->constraints);
     }
+
+    public function test_source_and_basepath_properties(): void
+    {
+        $skill = new Skill(
+            name: 'Remote Skill',
+            description: 'desc',
+            instructions: 'inst',
+            tools: [],
+            triggers: [],
+            source: 'remote',
+            basePath: '/var/skills/my-skill'
+        );
+
+        $this->assertEquals('remote', $skill->source);
+        $this->assertEquals('/var/skills/my-skill', $skill->basePath);
+    }
+
+    public function test_slug_with_special_characters(): void
+    {
+        $skill1 = new Skill(name: 'Über Skill', description: 'desc', instructions: 'inst', tools: [], triggers: []);
+        $this->assertEquals('uber-skill', $skill1->slug());
+
+        $skill2 = new Skill(name: 'my.skill.v2', description: 'desc', instructions: 'inst', tools: [], triggers: []);
+        $this->assertEquals('myskillv2', $skill2->slug());
+
+        $skill3 = new Skill(name: 'multi   space', description: 'desc', instructions: 'inst', tools: [], triggers: []);
+        $this->assertEquals('multi-space', $skill3->slug());
+    }
 }

@@ -114,11 +114,11 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Feature {
             $agent = new TestAgent;
             $registry = $agent->skillRegistry();
 
-            $this->assertCount(2, $agent->skillTools());
+            $this->assertCount(3, $agent->skillTools());
 
             $registry->load('git-master');
 
-            $this->assertCount(4, $agent->skillTools());
+            $this->assertCount(5, $agent->skillTools());
         }
 
         public function test_multiple_skills_can_be_loaded(): void
