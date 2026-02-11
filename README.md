@@ -76,7 +76,7 @@ class MyAssistant implements Agent, HasTools
 }
 ```
 
-By calling `$this->skillTools()`, your agent automatically gains access to the `list_skills` and `skill` meta-tools, enabling dynamic capability discovery.
+By calling `$this->skillTools()`, your agent automatically gains access to the `list_skills`, `skill`, and `skill_read` meta-tools, enabling dynamic capability discovery.
 
 <a name="creating-skills"></a>
 ## Creating Skills
@@ -161,7 +161,7 @@ public function tools(): iterable
 
 | Method | Returns | Description |
 |:-------|:--------|:------------|
-| `skillTools()` | `array` | Returns `list_skills`, `skill`, and any tools from pre-loaded skills. |
+| `skillTools()` | `array` | Returns `list_skills`, `skill`, `skill_read`, and any tools from pre-loaded skills. |
 | `skillInstructions(?string $mode)` | `string` | Combined instructions from loaded skills. Pass `'lite'` or `'full'` to override config. |
 | `skills()` | `iterable` | Define which skills should be available to this agent. |
 
@@ -209,9 +209,19 @@ return [
     // Discovery mode: 'lite' or 'full'
     'discovery_mode' => env('SKILLS_DISCOVERY_MODE', 'lite'),
 
+    // Skill source mode: 'local', 'remote', or 'dual'
+    'mode' => env('SKILLS_MODE', 'local'),
+
     // Directories where skills are discovered
     'paths' => [
         resource_path('skills'),
+    ],
+
+    // Remote discovery (only used when mode is 'remote' or 'dual')
+    'remote' => [
+        'url' => env('SKILLS_REMOTE_URL'),
+        'token' => env('SKILLS_REMOTE_TOKEN'),
+        'timeout' => env('SKILLS_REMOTE_TIMEOUT', 5),
     ],
 ];
 ```
@@ -262,38 +272,7 @@ All skill-related tools follow a strict `snake_case` naming convention. Core too
 
 - `list_skills`: Discovery and metadata disclosure.
 - `skill`: Dynamic loader that fetches instructions and tools.
-
-If you implement custom tools for your skills, we recommend implementing the `name()` method explicitly:
-
-```php
-public function name(): string { return 'search_docs'; }
-```
-
-<a name="canonical-xml-format"></a>
-### Canonical XML Format
-
-When instructions are injected or loaded, they are always wrapped in a canonical `<skill>` tag. This helps the LLM distinguish between base instructions and specialized skill capabilities:
-
-```xml
-<skill name="doc-writer">
-# Documentation Writer
-Instructions here...
-</skill>
-```
-
-<a name="how-it-works"></a>
-## How It Works
-
-The system architecture consists of four core components and two meta-tools:
-
-1.  **Discovery**: `SkillDiscovery` scans paths for `SKILL.md` files.
-2.  **Parsing**: `SkillParser` extracts YAML frontmatter and validates DTOs (including new `version`, `mcp`, and `constraints` fields).
-3.  **Registry**: `SkillRegistry` manages the lifecycle of loaded skills and ensures XML consistency.
-4.  **Integration**: The `Skillable` trait provides the glue for Laravel AI SDK Agents.
-
-**The Meta-Tools:**
-- `list_skills`: Uses progressive disclosure to show the AI what's available.
-- `skill`: The dynamic loader (formerly `LoadSkill`) that brings capabilities into the active context.
+- `skill_read`: Reads supplementary files from within a loaded skill's directory.
 
 <a name="testing"></a>
 ## Testing
@@ -304,7 +283,7 @@ The package maintains high test coverage to ensure reliability across Laravel ve
 php artisan test plugins/laravel-ai-sdk-skills/tests/
 ```
 
-Current status: **63 tests, 171 assertions** passing.
+Current status: **70 tests, 181 assertions** passing.
 
 > [!NOTE]
 > Phase 2 features including native MCP execution and sub-agent delegation are currently in the roadmap.
