@@ -1,26 +1,9 @@
 # Laravel AI SDK Skills
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [The Skill Format](#the-skill-format)
-- [Core Concepts](#core-concepts)
-  - [Progressive Disclosure](#progressive-disclosure)
-  - [Discovery Modes](#discovery-modes)
-  - [Lite vs Full Mode](#lite-vs-full-mode)
-- [Artisan Commands](#artisan-commands)
-- [Remote Discovery Protocol](#remote-discovery-protocol)
-- [Built-in Tools](#built-in-tools)
-- [Testing](#testing)
-
-<a name="introduction"></a>
-## Introduction
-
 This package extends the Laravel AI SDK with a high-performance skill system. Skills are reusable capability modules that provide instructions, tools, and context to your AI agents through a **Progressive Disclosure** mechanism.
 
 Instead of embedding all logic in your agent class or bloating the context window with unused instructions, you define skills as separate markdown files. Each skill encapsulates its own instructions and tools. Agents discover what's available and load only what they need during the conversation.
 
-<a name="installation"></a>
 ## Installation
 
 Install the package via composer:
@@ -35,7 +18,6 @@ The service provider registers automatically. You should publish the configurati
 php artisan vendor:publish --provider="AnilcanCakir\LaravelAiSdkSkills\SkillsServiceProvider"
 ```
 
-<a name="quick-start"></a>
 ## Quick Start
 
 Let's look at how quickly you can add a new capability to your agent. First, generate a new skill:
@@ -78,7 +60,6 @@ class Assistant implements Agent, HasTools
 
 By calling `$this->skillTools()`, your agent automatically gains access to meta-tools like `list_skills` and `skill`, enabling dynamic discovery.
 
-<a name="the-skill-format"></a>
 ## The Skill Format
 
 Each skill lives in its own directory with a `SKILL.md` file. It uses YAML frontmatter for metadata and standard markdown for the instructions.
@@ -107,15 +88,12 @@ You are a technical documentation expert. Use clear language and provide code ex
 | `triggers` | No | Keywords that hint when this skill is relevant. |
 | `tools` | No | Fully qualified class names of tools provided by this skill. |
 
-<a name="core-concepts"></a>
 ## Core Concepts
 
-<a name="progressive-disclosure"></a>
 ### Progressive Disclosure
 
 To prevent context window bloat, we use progressive disclosure. The AI only sees a list of available skills and their short descriptions. It "discovers" the full instructions only when it decides a skill is necessary for the current task.
 
-<a name="discovery-modes"></a>
 ### Discovery Modes
 
 You can configure where your skills come from in `config/skills.php`:
@@ -124,7 +102,6 @@ You can configure where your skills come from in `config/skills.php`:
 - **Remote**: Fetches skills from a remote JSON API.
 - **Dual**: Searches both local and remote sources.
 
-<a name="lite-vs-full-mode"></a>
 ### Lite vs Full Mode
 
 The `discovery_mode` controls how much information is injected into the initial prompt:
@@ -132,7 +109,6 @@ The `discovery_mode` controls how much information is injected into the initial 
 - **Lite** (Default): Injects only `<skill name="..." description="..." />` tags. Minimal tokens.
 - **Full**: Injects the complete `SKILL.md` content immediately. Best for agents with very specific, small skill sets.
 
-<a name="artisan-commands"></a>
 ## Artisan Commands
 
 We've provided a few commands to help you manage your skills:
@@ -148,7 +124,6 @@ php artisan skills:list
 php artisan skills:clear
 ```
 
-<a name="remote-discovery-protocol"></a>
 ## Remote Discovery Protocol
 
 When using `remote` or `dual` mode, the package expects your remote server to return a specific JSON structure. This is perfect for sharing skills across multiple microservices.
@@ -183,7 +158,6 @@ Or a more structured format where the package handles the assembly:
 }
 ```
 
-<a name="built-in-tools"></a>
 ## Built-in Tools
 
 When you use the `Skillable` trait, your agent gets these tools automatically:
@@ -195,7 +169,6 @@ When you use the `Skillable` trait, your agent gets these tools automatically:
 > [!NOTE]
 > The `skill_read` tool is restricted to the skill's own directory, ensuring your agent can't wander off into sensitive parts of your filesystem.
 
-<a name="testing"></a>
 ## Testing
 
 The package is built with testability in mind and maintains high coverage.
