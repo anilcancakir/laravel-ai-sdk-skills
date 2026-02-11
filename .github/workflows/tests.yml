@@ -62,4 +62,13 @@ jobs:
           composer update --prefer-dist --no-interaction --no-progress
 
       - name: Run tests with coverage
-        run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
+        run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml | tee coverage.txt
+
+      - name: Check Coverage Threshold
+        run: |
+          LINE_COVERAGE=$(grep "Lines:" coverage.txt | awk '{print $2}' | sed 's/%//')
+          echo "Line coverage: $LINE_COVERAGE%"
+          if (( $(echo "$LINE_COVERAGE < 80" | bc -l) )); then
+            echo "Coverage is below 80%!"
+            exit 1
+          fi
