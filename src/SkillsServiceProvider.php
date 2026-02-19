@@ -25,9 +25,25 @@ class SkillsServiceProvider extends ServiceProvider
         }
 
         $this->app->singleton(SkillDiscovery::class, function ($app) {
+            $cacheEnabled = filter_var(
+                config('skills.cache.enabled'),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            );
+
+            if ($cacheEnabled === null) {
+                $cacheEnabled = ! $app->environment('local', 'testing');
+            }
+
+            $cacheStore = config('skills.cache.store');
+            if (! is_string($cacheStore) || trim($cacheStore) === '') {
+                $cacheStore = null;
+            }
+
             return new SkillDiscovery(
                 paths: config('skills.paths', [resource_path('skills')]),
-                cacheEnabled: ! $app->environment('local', 'testing'),
+                cacheEnabled: $cacheEnabled,
+                cacheStore: $cacheStore,
             );
         });
 
