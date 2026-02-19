@@ -17,10 +17,11 @@ return [
     | Discovery Mode
     |--------------------------------------------------------------------------
     |
-    | Controls how skills are presented to the AI agent at startup.
+    | Default inclusion mode for skills in prompt instructions.
     |
-    | 'lite': Injects name and description only (saves tokens).
-    | 'full': Injects name, description, and full instructions.
+    | This is used when a skill does not declare its own mode in skills():
+    | - 'lite' (or alias 'lazy'): injects name and description only.
+    | - 'full' (or alias 'eager'): injects full skill instructions.
     |
     */
 

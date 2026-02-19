@@ -2,10 +2,12 @@
 
 namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Feature;
 
+use AnilcanCakir\LaravelAiSdkSkills\Enums\SkillInclusionMode;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 
 class SkillableTraitTest extends TestCase
 {
@@ -186,5 +188,254 @@ EOT
         $this->assertEmpty($tools);
         $this->assertEmpty($instructions);
         $this->assertFalse(resolve(SkillRegistry::class)->isLoaded('test-skill'));
+    }
+
+    public function test_with_skill_instructions_composes_static_skill_dynamic_in_order()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('ordered-skill', 'Ordered skill', 'Ordered instructions.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['ordered-skill'];
+            }
+        };
+
+        $prompt = $agent->withSkillInstructions(
+            'Base instructions...',
+            'Runtime context goes last.'
+        );
+
+        $skillPosition = strpos($prompt, '<skill name="ordered-skill"');
+        $runtimePosition = strpos($prompt, 'Runtime context goes last.');
+
+        $this->assertNotFalse($skillPosition);
+        $this->assertNotFalse($runtimePosition);
+        $this->assertGreaterThan($skillPosition, $runtimePosition);
+        $this->assertStringStartsWith('Base instructions...', $prompt);
+        $this->assertStringEndsWith('Runtime context goes last.', $prompt);
+
+        $this->deleteFixtureSkill('ordered-skill');
+    }
+
+    public function test_with_skill_instructions_without_dynamic_prompt_joins_cleanly()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('join-skill', 'Join skill', 'Join instructions.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['join-skill'];
+            }
+        };
+
+        $skillsBlock = $agent->skillInstructions();
+        $prompt = $agent->withSkillInstructions('Base instructions...');
+
+        $this->assertSame("Base instructions...\n\n{$skillsBlock}", $prompt);
+        $this->assertStringNotContainsString("\n\n\n", $prompt);
+
+        $this->deleteFixtureSkill('join-skill');
+    }
+
+    public function test_with_skill_instructions_handles_disabled_skills_without_skill_block()
+    {
+        config(['skills.enabled' => false]);
+
+        $agent = new class
+        {
+            use Skillable;
+        };
+
+        $prompt = $agent->withSkillInstructions(
+            'Base instructions...',
+            'Runtime context goes last.'
+        );
+
+        $this->assertSame(
+            "Base instructions...\n\nRuntime context goes last.",
+            $prompt
+        );
+    }
+
+    public function test_with_skill_instructions_includes_only_full_instruction_bodies_for_mixed_modes()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('prompt-full-skill', 'Prompt full skill', 'Full skill instructions in system prompt.');
+        $this->createFixtureSkill('prompt-lite-skill', 'Prompt lite skill', 'Lite skill instructions must stay out.');
+        $this->createFixtureSkill('prompt-fallback-skill', 'Prompt fallback skill', 'Fallback skill instructions must stay out.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return [
+                    'prompt-full-skill' => 'full',
+                    'prompt-lite-skill' => 'lite',
+                    'prompt-fallback-skill',
+                ];
+            }
+        };
+
+        $prompt = $agent->withSkillInstructions(
+            'Base instructions...',
+            'Runtime context goes last.'
+        );
+
+        $this->assertStringContainsString('<skill name="prompt-full-skill">', $prompt);
+        $this->assertStringContainsString('Full skill instructions in system prompt.', $prompt);
+        $this->assertStringNotContainsString('Lite skill instructions must stay out.', $prompt);
+        $this->assertStringNotContainsString('Fallback skill instructions must stay out.', $prompt);
+        $this->assertStringContainsString('<skill name="prompt-lite-skill" description="Prompt lite skill" />', $prompt);
+        $this->assertStringContainsString('<skill name="prompt-fallback-skill" description="Prompt fallback skill" />', $prompt);
+
+        $this->deleteFixtureSkill('prompt-full-skill');
+        $this->deleteFixtureSkill('prompt-lite-skill');
+        $this->deleteFixtureSkill('prompt-fallback-skill');
+    }
+
+    public function test_mixed_per_skill_modes_use_explicit_value_or_config_fallback()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('explicit-full-skill', 'Explicit full skill', 'Show me fully.');
+        $this->createFixtureSkill('fallback-lite-skill', 'Fallback lite skill', 'Hide me by default.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return [
+                    'explicit-full-skill' => 'full',
+                    'fallback-lite-skill',
+                ];
+            }
+        };
+
+        $instructions = $agent->skillInstructions();
+
+        $this->assertStringContainsString('<skill name="explicit-full-skill">', $instructions);
+        $this->assertStringContainsString('Show me fully.', $instructions);
+        $this->assertStringContainsString('<skill name="fallback-lite-skill" description="Fallback lite skill" />', $instructions);
+        $this->assertStringNotContainsString('Hide me by default.', $instructions);
+
+        $this->deleteFixtureSkill('explicit-full-skill');
+        $this->deleteFixtureSkill('fallback-lite-skill');
+    }
+
+    public function test_per_skill_alias_modes_are_supported()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('lazy-skill', 'Lazy skill', 'Should stay hidden.');
+        $this->createFixtureSkill('eager-skill', 'Eager skill', 'Should be visible.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return [
+                    'lazy-skill' => 'lazy',
+                    'eager-skill' => 'eager',
+                ];
+            }
+        };
+
+        $instructions = $agent->skillInstructions();
+
+        $this->assertStringContainsString('description="Lazy skill"', $instructions);
+        $this->assertStringNotContainsString('Should stay hidden.', $instructions);
+        $this->assertStringContainsString('<skill name="eager-skill">', $instructions);
+        $this->assertStringContainsString('Should be visible.', $instructions);
+
+        $this->deleteFixtureSkill('lazy-skill');
+        $this->deleteFixtureSkill('eager-skill');
+    }
+
+    public function test_per_skill_enum_modes_are_supported()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('enum-skill', 'Enum skill', 'Enum full instructions.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return [
+                    'enum-skill' => SkillInclusionMode::Full,
+                ];
+            }
+        };
+
+        $instructions = $agent->skillInstructions();
+
+        $this->assertStringContainsString('<skill name="enum-skill">', $instructions);
+        $this->assertStringContainsString('Enum full instructions.', $instructions);
+
+        $this->deleteFixtureSkill('enum-skill');
+    }
+
+    public function test_invalid_per_skill_mode_logs_warning_and_falls_back_to_config()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('invalid-mode-skill', 'Invalid mode skill', 'Should stay hidden by fallback.');
+
+        Log::shouldReceive('warning')->atLeast()->once();
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return [
+                    'invalid-mode-skill' => 'fast',
+                ];
+            }
+        };
+
+        $instructions = $agent->skillInstructions();
+
+        $this->assertStringContainsString('description="Invalid mode skill"', $instructions);
+        $this->assertStringNotContainsString('Should stay hidden by fallback.', $instructions);
+
+        $this->deleteFixtureSkill('invalid-mode-skill');
+    }
+
+    private function createFixtureSkill(string $slug, string $description, string $instructions): void
+    {
+        $skillPath = __DIR__.'/../fixtures/skills/'.$slug;
+        if (! File::exists($skillPath)) {
+            File::makeDirectory($skillPath, 0755, true);
+        }
+
+        File::put($skillPath.'/SKILL.md', <<<EOT
+---
+name: {$slug}
+description: {$description}
+---
+# Instructions
+{$instructions}
+EOT
+        );
+    }
+
+    private function deleteFixtureSkill(string $slug): void
+    {
+        File::deleteDirectory(__DIR__.'/../fixtures/skills/'.$slug);
     }
 }

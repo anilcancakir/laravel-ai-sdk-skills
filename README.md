@@ -33,9 +33,11 @@ This creates `resources/skills/doc-writer/SKILL.md`. Now, add the `Skillable` tr
 
 namespace App\Ai\Agents;
 
+use AnilcanCakir\LaravelAiSdkSkills\Enums\SkillInclusionMode;
 use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasTools;
+use Laravel\Ai\Tools\YourCustomTool;
 
 class Assistant implements Agent, HasTools
 {
@@ -43,20 +45,31 @@ class Assistant implements Agent, HasTools
 
     public function skills(): iterable
     {
-        return ['doc-writer'];
+        return [
+            'doc-writer',
+            'style-guide' => SkillInclusionMode::Full,
+        ];
     }
 
     public function instructions(): string
     {
-        return "Base instructions...\n\n" . $this->skillInstructions();
+        return $this->withSkillInstructions(
+            staticPrompt: "Base instructions...",
+            dynamicPrompt: "Conversation-specific context goes at the end."
+        );
     }
 
     public function tools(): iterable
     {
-        return $this->skillTools();
+        return [
+            ...$this->skillTools(),
+            new YourCustomTool,
+        ];
     }
 }
 ```
+
+You should employ best-practice design by including information that varies between conversations or messages in the "dynamicPrompt". This maximies gains from prompt caching, improves responsiveness and reduces token costs.
 
 By calling `$this->skillTools()`, your agent automatically gains access to meta-tools like `list_skills` and `skill`, enabling dynamic discovery.
 
@@ -75,10 +88,10 @@ description: Writes technical documentation in a friendly style
 You are a technical documentation expert. Use clear language and provide code examples.
 ```
 
-| Field | Required | Description |
-|:------|:---------|:------------|
-| `name` | Yes | Unique identifier (snake_case). |
-| `description` | Yes | Short explanation used for discovery. |
+| Field         | Required | Description                           |
+|:--------------|:---------|:--------------------------------------|
+| `name`        | Yes      | Unique identifier (snake_case).       |
+| `description` | Yes      | Short explanation used for discovery. |
 
 ## Core Concepts
 
@@ -92,10 +105,36 @@ By default, skills are loaded from your local `resources/skills` directory. You 
 
 ### Lite vs Full Mode
 
-The `discovery_mode` controls how much information is injected into the initial prompt:
+Each skill can be injected in **lite** or **full** mode:
 
 - **Lite** (Default): Injects only `<skill name="..." description="..." />` tags. Minimal tokens.
 - **Full**: Injects the complete `SKILL.md` content immediately. Best for agents with very specific, small skill sets.
+
+`discovery_mode` in `config/skills.php` sets the global default inclusion strategy for all skills.
+
+You can set per-skill modes like so:
+
+```php
+use AnilcanCakir\LaravelAiSdkSkills\Enums\SkillInclusionMode;
+
+public function skills(): iterable
+{
+    return [
+        'style-guide' => SkillInclusionMode::Full,
+        'doc-writer' => SkillInclusionMode::Lite,
+        'tools-guide' => 'full', // string input
+        'api-writer' => 'eager', // alias for full
+        'qa-checker' => 'lazy',  // alias for lite
+        'doc-writer',            // uses config('skills.discovery_mode')
+    ];
+}
+```
+
+Instructions formatted through `withSkillInstructions()` will order output as:
+
+1. static prompt
+2. skill instructions
+3. dynamic prompt (when provided)
 
 ## Artisan Commands
 
@@ -131,4 +170,4 @@ The package is built with testability in mind and maintains high coverage.
 php artisan test
 ```
 
-Current status: **84 tests, 200+ assertions** passing.
+Current status: **95 tests, 230+ assertions** passing.
