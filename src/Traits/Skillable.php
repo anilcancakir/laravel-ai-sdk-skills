@@ -108,6 +108,9 @@ trait Skillable
      * Compose full system instructions with skill instructions inserted in the middle.
      *
      * The dynamic prompt is appended last for prompt-caching-friendly ordering.
+     *
+     * @param  string  $staticPrompt  The stable/base system prompt content to place first.
+     * @param  string  $dynamicPrompt  Runtime-varying prompt content to append at the end.
      */
     public function withSkillInstructions(string $staticPrompt, string $dynamicPrompt = ''): string
     {
