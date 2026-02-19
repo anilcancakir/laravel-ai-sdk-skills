@@ -33,6 +33,7 @@ This creates `resources/skills/doc-writer/SKILL.md`. Now, add the `Skillable` tr
 
 namespace App\Ai\Agents;
 
+use AnilcanCakir\LaravelAiSdkSkills\Enums\SkillInclusionMode;
 use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasTools;
@@ -43,12 +44,18 @@ class Assistant implements Agent, HasTools
 
     public function skills(): iterable
     {
-        return ['doc-writer'];
+        return [
+            'doc-writer',
+            'style-guide' => SkillInclusionMode::Full,
+        ];
     }
 
     public function instructions(): string
     {
-        return "Base instructions...\n\n" . $this->skillInstructions();
+        return $this->withSkillInstructions(
+            staticPrompt: "Base instructions...",
+            dynamicPrompt: "Conversation-specific context goes at the end."
+        );
     }
 
     public function tools(): iterable
@@ -92,10 +99,45 @@ By default, skills are loaded from your local `resources/skills` directory. You 
 
 ### Lite vs Full Mode
 
-The `discovery_mode` controls how much information is injected into the initial prompt:
+Each skill can be injected in **lite** or **full** mode:
 
 - **Lite** (Default): Injects only `<skill name="..." description="..." />` tags. Minimal tokens.
 - **Full**: Injects the complete `SKILL.md` content immediately. Best for agents with very specific, small skill sets.
+
+`config('skills.discovery_mode')` is now the **fallback** mode when a specific skill does not declare its own mode in `skills()`.
+
+You can choose per-skill modes like this:
+
+```php
+public function skills(): iterable
+{
+    return [
+        'style-guide' => 'full', // string input
+        'api-writer' => 'eager', // alias for full
+        'qa-checker' => 'lazy',  // alias for lite
+        'doc-writer',            // uses config('skills.discovery_mode')
+    ];
+}
+```
+
+Enum inputs are also supported:
+
+```php
+use AnilcanCakir\LaravelAiSdkSkills\Enums\SkillInclusionMode;
+
+public function skills(): iterable
+{
+    return [
+        'style-guide' => SkillInclusionMode::Full,
+        'doc-writer' => SkillInclusionMode::Lite,
+    ];
+}
+```
+
+`withSkillInstructions()` always orders output as:
+1. static prompt
+2. skill instructions
+3. dynamic prompt (appended last for prompt-caching-friendly composition)
 
 ## Artisan Commands
 
@@ -131,4 +173,4 @@ The package is built with testability in mind and maintains high coverage.
 php artisan test
 ```
 
-Current status: **84 tests, 200+ assertions** passing.
+Current status: **95 tests, 230+ assertions** passing.

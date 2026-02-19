@@ -6,6 +6,7 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillReferenceReader;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\Tool;
 
 use function app;
@@ -45,7 +46,11 @@ trait Skillable
      *
      * Override this method to define which skills your agent uses.
      *
-     * @return iterable<int, string>
+     * Supports:
+     * - list form: ['my-skill', '/abs/path/to/skill']
+     * - keyed form: ['my-skill' => 'full', 'other-skill' => 'lite']
+     *
+     * @return iterable<int|string, mixed>
      */
     public function skills(): iterable
     {
@@ -100,6 +105,22 @@ trait Skillable
     }
 
     /**
+     * Compose full system instructions with skill instructions inserted in the middle.
+     *
+     * The dynamic prompt is appended last for prompt-caching-friendly ordering.
+     */
+    public function withSkillInstructions(string $staticPrompt, string $dynamicPrompt = ''): string
+    {
+        $segments = [$staticPrompt, $this->skillInstructions(), $dynamicPrompt];
+        $segments = array_values(array_filter(
+            $segments,
+            static fn (string $segment): bool => trim($segment) !== ''
+        ));
+
+        return implode("\n\n", $segments);
+    }
+
+    /**
      * Boot skills if not already booted.
      */
     private function bootSkillsIfNeeded(): void
@@ -109,9 +130,34 @@ trait Skillable
         }
 
         $this->skillsBooted = true;
+        $registry = app(SkillRegistry::class);
 
-        foreach ($this->skills() as $skillNameOrPath) {
-            app(SkillRegistry::class)->load($skillNameOrPath);
+        foreach ($this->skills() as $key => $value) {
+            if (is_int($key)) {
+                if (! is_string($value)) {
+                    Log::warning(
+                        'Invalid skill entry in skills(): numeric-key entries must be skill strings; got ['.
+                        get_debug_type($value).']. Skipping entry.'
+                    );
+
+                    continue;
+                }
+
+                $registry->load($value);
+
+                continue;
+            }
+
+            if (! is_string($key)) {
+                Log::warning(
+                    'Invalid skill entry key in skills(): expected string key for skill => mode mapping; got ['.
+                    get_debug_type($key).']. Skipping entry.'
+                );
+
+                continue;
+            }
+
+            $registry->load($key, $value);
         }
     }
 }
