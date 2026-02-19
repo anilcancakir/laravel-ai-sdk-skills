@@ -266,6 +266,44 @@ EOT
         );
     }
 
+    public function test_with_skill_instructions_includes_only_full_instruction_bodies_for_mixed_modes()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('prompt-full-skill', 'Prompt full skill', 'Full skill instructions in system prompt.');
+        $this->createFixtureSkill('prompt-lite-skill', 'Prompt lite skill', 'Lite skill instructions must stay out.');
+        $this->createFixtureSkill('prompt-fallback-skill', 'Prompt fallback skill', 'Fallback skill instructions must stay out.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return [
+                    'prompt-full-skill' => 'full',
+                    'prompt-lite-skill' => 'lite',
+                    'prompt-fallback-skill',
+                ];
+            }
+        };
+
+        $prompt = $agent->withSkillInstructions(
+            'Base instructions...',
+            'Runtime context goes last.'
+        );
+
+        $this->assertStringContainsString('<skill name="prompt-full-skill">', $prompt);
+        $this->assertStringContainsString('Full skill instructions in system prompt.', $prompt);
+        $this->assertStringNotContainsString('Lite skill instructions must stay out.', $prompt);
+        $this->assertStringNotContainsString('Fallback skill instructions must stay out.', $prompt);
+        $this->assertStringContainsString('<skill name="prompt-lite-skill" description="Prompt lite skill" />', $prompt);
+        $this->assertStringContainsString('<skill name="prompt-fallback-skill" description="Prompt fallback skill" />', $prompt);
+
+        $this->deleteFixtureSkill('prompt-full-skill');
+        $this->deleteFixtureSkill('prompt-lite-skill');
+        $this->deleteFixtureSkill('prompt-fallback-skill');
+    }
+
     public function test_mixed_per_skill_modes_use_explicit_value_or_config_fallback()
     {
         config(['skills.discovery_mode' => 'lite']);
