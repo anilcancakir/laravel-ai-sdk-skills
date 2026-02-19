@@ -39,4 +39,20 @@ return [
     'paths' => [
         resource_path('skills'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Skill Cache
+    |--------------------------------------------------------------------------
+    |
+    | Configure skill discovery cache behavior.
+    |
+    | Set "store" to null to use the application's default cache store.
+    |
+    */
+
+    'cache' => [
+        'enabled' => env('SKILLS_CACHE_ENABLED', ! app()->environment('local', 'testing')),
+        'store' => env('SKILLS_CACHE_STORE', null),
+    ],
 ];

@@ -6,6 +6,7 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use InvalidArgumentException;
 
 class SkillDiscoveryTest extends TestCase
 {
@@ -189,6 +190,67 @@ class SkillDiscoveryTest extends TestCase
         $discovery->discover();
 
         Cache::shouldNotHaveReceived('remember');
+    }
+
+    public function test_it_uses_configured_cache_store_for_discovery()
+    {
+        config([
+            'cache.stores.skills_array' => [
+                'driver' => 'array',
+                'serialize' => false,
+            ],
+        ]);
+
+        $this->createSkillFile('path1/custom-store/SKILL.md', 'Custom Store Skill');
+
+        $discovery = new SkillDiscovery(
+            paths: [$this->tempPath.'/path1'],
+            cacheEnabled: true,
+            cacheTtl: 60,
+            cacheStore: 'skills_array',
+        );
+
+        $discovery->discover();
+
+        $this->assertTrue(Cache::store('skills_array')->has('ai_sdk_skills'));
+    }
+
+    public function test_clear_cache_uses_configured_cache_store()
+    {
+        config([
+            'cache.stores.skills_array' => [
+                'driver' => 'array',
+                'serialize' => false,
+            ],
+        ]);
+
+        $this->createSkillFile('path1/custom-store/SKILL.md', 'Custom Store Skill');
+
+        $discovery = new SkillDiscovery(
+            paths: [$this->tempPath.'/path1'],
+            cacheEnabled: true,
+            cacheTtl: 60,
+            cacheStore: 'skills_array',
+        );
+
+        $discovery->discover();
+        $this->assertTrue(Cache::store('skills_array')->has('ai_sdk_skills'));
+
+        $discovery->clearCache();
+        $this->assertFalse(Cache::store('skills_array')->has('ai_sdk_skills'));
+    }
+
+    public function test_it_throws_on_invalid_configured_cache_store()
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $discovery = new SkillDiscovery(
+            paths: [$this->tempPath.'/path1'],
+            cacheEnabled: true,
+            cacheStore: 'missing-store',
+        );
+
+        $discovery->discover();
     }
 
     protected function createSkillFile($relativePath, $name, $description = 'Desc')
