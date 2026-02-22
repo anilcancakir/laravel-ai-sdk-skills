@@ -1,8 +1,17 @@
+<p align="center">
+<a href="https://github.com/anilcancakir/laravel-ai-sdk-skills/actions"><img src="https://github.com/anilcancakir/laravel-ai-sdk-skills/actions/workflows/tests.yml/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/anilcancakir/laravel-ai-sdk-skills"><img src="https://img.shields.io/packagist/dt/anilcancakir/laravel-ai-sdk-skills" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/anilcancakir/laravel-ai-sdk-skills"><img src="https://img.shields.io/packagist/v/anilcancakir/laravel-ai-sdk-skills" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/anilcancakir/laravel-ai-sdk-skills"><img src="https://img.shields.io/packagist/l/anilcancakir/laravel-ai-sdk-skills" alt="License"></a>
+</p>
+
 # Laravel AI SDK Skills
 
 This package extends the Laravel AI SDK with a high-performance skill system. Skills are reusable capability modules that provide instructions, tools, and context to your AI agents through a **Progressive Disclosure** mechanism.
 
 Instead of embedding all logic in your agent class or bloating the context window with unused instructions, you define skills as separate markdown files. Each skill encapsulates its own instructions and tools. Agents discover what's available and load only what they need during the conversation.
+
+For a detailed walkthrough with real-world examples, check out the [announcement article on Medium](https://medium.com/@anilcan/level-up-your-laravel-ai-agents-with-modular-skills-39da3fe9fe4b).
 
 ## Installation
 
@@ -97,6 +106,19 @@ The `discovery_mode` controls how much information is injected into the initial 
 - **Lite** (Default): Injects only `<skill name="..." description="..." />` tags. Minimal tokens.
 - **Full**: Injects the complete `SKILL.md` content immediately. Best for agents with very specific, small skill sets.
 
+### Caching
+
+Skill discovery results are cached automatically in production. In `local` and `testing` environments, caching is disabled by default so your changes are picked up immediately.
+
+You can override this behavior via environment variables:
+
+```env
+SKILLS_CACHE_ENABLED=true    # Force cache on (even in local)
+SKILLS_CACHE_STORE=file      # Use a specific cache store instead of the default
+```
+
+Run `php artisan skills:clear` to flush the cache manually.
+
 ## Artisan Commands
 
 We've provided a few commands to help you manage your skills:
@@ -124,11 +146,6 @@ When you use the `Skillable` trait, your agent gets these tools automatically:
 > The `skill_read` tool is restricted to the skill's own directory, ensuring your agent can't wander off into sensitive parts of your filesystem.
 
 ## Testing
-
-The package is built with testability in mind and maintains high coverage.
-
 ```shell
 php artisan test
 ```
-
-Current status: **84 tests, 200+ assertions** passing.
