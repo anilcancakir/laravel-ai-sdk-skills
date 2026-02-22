@@ -22,7 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Full Changelog**: https://github.com/anilcancakir/laravel-ai-sdk-skills/compare/v1.0.0...v1.0.1
 
-## [Unreleased]
+## [v1.1.0](https://github.com/anilcancakir/laravel-ai-sdk-skills/releases/tag/v1.1.0) - 2026-02-22
+
+### Added
+
+- **Prompt Value Object** (`Support\Prompt`): Immutable, `Stringable` value object for composing AI agent prompt content from multiple sources:
+  - `Prompt::text()` — Inline text with `{{key}}` variable binding.
+  - `Prompt::file()` — File-based templates with variable binding.
+  - `Prompt::view()` — Full Blade view rendering with data passing.
+- **`composeInstructions()` method** on the `Skillable` trait: Accepts `string|Prompt` for both static and dynamic prompt segments while maintaining the same Static → Skills → Dynamic ordering as `withSkillInstructions()` for optimal prompt caching.
+
+### Notes
+
+- Fully backward compatible with v1.0.x — no changes to existing method signatures.
+- `withSkillInstructions()` remains unchanged and continues to work as before.
 
 ## [v1.0.0](https://github.com/anilcancakir/laravel-ai-sdk-skills/releases/tag/v1.0.0) - 2026-02-11
 

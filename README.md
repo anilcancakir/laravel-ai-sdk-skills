@@ -158,6 +158,40 @@ public function instructions(): string
 
 This ordering maximizes prefix cache hits across conversations, improving responsiveness and reducing token costs. Both parameters are optional — calling `$this->withSkillInstructions()` with no arguments returns just the skill instructions.
 
+### Prompt Templates
+
+The `Prompt` value object lets you build system prompts from inline text, files, or Blade views — with optional variable binding using `{{key}}` syntax:
+
+```php
+use AnilcanCakir\LaravelAiSdkSkills\Support\Prompt;
+
+// Inline text with variable binding
+Prompt::text('You are {{role}}', ['role' => 'assistant']);
+
+// File-based template (supports {{key}} variables)
+Prompt::file(resource_path('prompts/base.md'), ['name' => $user->name]);
+
+// Blade view (full Blade features available)
+Prompt::view('prompts.system', ['session' => $session]);
+```
+
+Use `composeInstructions()` to combine `Prompt` objects with skill instructions. It follows the same Static → Skills → Dynamic ordering as `withSkillInstructions()`, keeping your prompts prefix-caching friendly:
+
+```php
+public function instructions(): string
+{
+    return $this->composeInstructions(
+        staticPrompt: Prompt::file(resource_path('prompts/system.md')),
+        dynamicPrompt: Prompt::text('User: {{name}}, Role: {{role}}', [
+            'name' => $this->user->name,
+            'role' => $this->user->role,
+        ]),
+    );
+}
+```
+
+Both parameters also accept plain strings for backward compatibility. The `Prompt` class implements `Stringable`, so it works anywhere a string is expected.
+
 ## Artisan Commands
 
 We've provided a few commands to help you manage your skills:

@@ -2,6 +2,7 @@
 
 namespace AnilcanCakir\LaravelAiSdkSkills\Traits;
 
+use AnilcanCakir\LaravelAiSdkSkills\Support\Prompt;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
@@ -123,6 +124,30 @@ trait Skillable
         return implode("\n\n", $segments);
     }
 
+
+    /**
+     * Compose full system instructions using Prompt objects or plain strings.
+     *
+     * This is the recommended way to build system prompts when using Prompt templates.
+     * Skill instructions are inserted between the static and dynamic portions
+     * for prompt-caching-friendly ordering.
+     *
+     * @param  string|Prompt  $staticPrompt  The stable/base system prompt content to place first.
+     * @param  string|Prompt  $dynamicPrompt  Runtime-varying prompt content to append at the end.
+     */
+    public function composeInstructions(string|Prompt $staticPrompt = '', string|Prompt $dynamicPrompt = ''): string
+    {
+        $static = $staticPrompt instanceof Prompt ? $staticPrompt->toString() : $staticPrompt;
+        $dynamic = $dynamicPrompt instanceof Prompt ? $dynamicPrompt->toString() : $dynamicPrompt;
+
+        $segments = [$static, $this->skillInstructions(), $dynamic];
+        $segments = array_values(array_filter(
+            $segments,
+            static fn (string $segment): bool => trim($segment) !== ''
+        ));
+
+        return implode("\n\n", $segments);
+    }
     /**
      * Boot skills if not already booted.
      */

@@ -8,6 +8,7 @@ use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use AnilcanCakir\LaravelAiSdkSkills\Support\Prompt;
 
 class SkillableTraitTest extends TestCase
 {
@@ -637,6 +638,209 @@ description: {$description}
 {$instructions}
 EOT
         );
+    }
+
+    /**
+     * -------------------------------------------------------
+     * composeInstructions() Tests
+     * -------------------------------------------------------
+     */
+
+    public function test_compose_instructions_with_plain_strings(): void
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('ci-plain', 'CI plain skill', 'CI plain body.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['ci-plain'];
+            }
+        };
+
+        $prompt = $agent->composeInstructions('Static part.', 'Dynamic part.');
+        $withSkill = $agent->withSkillInstructions('Static part.', 'Dynamic part.');
+
+        $this->assertSame($withSkill, $prompt);
+        $this->assertStringStartsWith('Static part.', $prompt);
+        $this->assertStringEndsWith('Dynamic part.', $prompt);
+
+        $this->deleteFixtureSkill('ci-plain');
+    }
+
+    public function test_compose_instructions_with_prompt_text_objects(): void
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('ci-text', 'CI text skill', 'CI text body.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['ci-text'];
+            }
+        };
+
+        $prompt = $agent->composeInstructions(
+            Prompt::text('You are {{role}}', ['role' => 'coach']),
+            Prompt::text('User: {{name}}', ['name' => 'Alice']),
+        );
+
+        $this->assertStringStartsWith('You are coach', $prompt);
+        $this->assertStringEndsWith('User: Alice', $prompt);
+        $this->assertStringContainsString('ci-text', $prompt);
+
+        $this->deleteFixtureSkill('ci-text');
+    }
+
+    public function test_compose_instructions_with_prompt_file(): void
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('ci-file', 'CI file skill', 'CI file body.');
+
+        $dir = storage_path('temp-prompts');
+        if (! File::exists($dir)) {
+            File::makeDirectory($dir, 0755, true);
+        }
+
+        $path = $dir.'/compose-test.md';
+        File::put($path, 'Static from file for {{env}}.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['ci-file'];
+            }
+        };
+
+        $prompt = $agent->composeInstructions(
+            Prompt::file($path, ['env' => 'production']),
+            'Dynamic runtime.',
+        );
+
+        $this->assertStringStartsWith('Static from file for production.', $prompt);
+        $this->assertStringEndsWith('Dynamic runtime.', $prompt);
+        $this->assertStringContainsString('ci-file', $prompt);
+
+        File::delete($path);
+        $this->deleteFixtureSkill('ci-file');
+    }
+
+    public function test_compose_instructions_with_mixed_types(): void
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('ci-mixed', 'CI mixed skill', 'CI mixed body.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['ci-mixed'];
+            }
+        };
+
+        // string static + Prompt dynamic
+        $prompt1 = $agent->composeInstructions(
+            'Plain static.',
+            Prompt::text('Dynamic {{mode}}', ['mode' => 'active']),
+        );
+
+        $this->assertStringStartsWith('Plain static.', $prompt1);
+        $this->assertStringEndsWith('Dynamic active', $prompt1);
+
+        // Prompt static + string dynamic
+        $prompt2 = $agent->composeInstructions(
+            Prompt::text('Prompt {{side}}', ['side' => 'left']),
+            'String dynamic.',
+        );
+
+        $this->assertStringStartsWith('Prompt left', $prompt2);
+        $this->assertStringEndsWith('String dynamic.', $prompt2);
+
+        $this->deleteFixtureSkill('ci-mixed');
+    }
+
+    public function test_compose_instructions_without_args_returns_only_skills(): void
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('ci-noarg', 'CI noarg skill', 'CI noarg body.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['ci-noarg'];
+            }
+        };
+
+        $skillsOnly = $agent->skillInstructions();
+        $composed = $agent->composeInstructions();
+
+        $this->assertSame($skillsOnly, $composed);
+
+        $this->deleteFixtureSkill('ci-noarg');
+    }
+
+    public function test_compose_instructions_with_disabled_skills(): void
+    {
+        config(['skills.enabled' => false]);
+
+        $agent = new class
+        {
+            use Skillable;
+        };
+
+        $prompt = $agent->composeInstructions(
+            Prompt::text('Static {{x}}', ['x' => 'A']),
+            Prompt::text('Dynamic {{y}}', ['y' => 'B']),
+        );
+
+        $this->assertSame("Static A\n\nDynamic B", $prompt);
+    }
+
+    public function test_compose_instructions_ordering_static_skills_dynamic(): void
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('ci-order', 'CI order skill', 'CI order body.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['ci-order'];
+            }
+        };
+
+        $prompt = $agent->composeInstructions(
+            Prompt::text('FIRST_SEGMENT'),
+            Prompt::text('LAST_SEGMENT'),
+        );
+
+        $staticPos = strpos($prompt, 'FIRST_SEGMENT');
+        $skillPos = strpos($prompt, 'ci-order');
+        $dynamicPos = strpos($prompt, 'LAST_SEGMENT');
+
+        $this->assertNotFalse($staticPos);
+        $this->assertNotFalse($skillPos);
+        $this->assertNotFalse($dynamicPos);
+        $this->assertLessThan($skillPos, $staticPos);
+        $this->assertLessThan($dynamicPos, $skillPos);
+
+        $this->deleteFixtureSkill('ci-order');
     }
 
     private function deleteFixtureSkill(string $slug): void
