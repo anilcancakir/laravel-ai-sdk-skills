@@ -5,24 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v1.0.1](https://github.com/anilcancakir/laravel-ai-sdk-skills/compare/v1.0.0...v1.0.1) - 2026-02-22
-
-### Added
-
-- **Per-Skill Inclusion Modes**: Override the global `discovery_mode` on a per-skill basis using keyed arrays (`'skill-name' => SkillInclusionMode::Full`). Supports enum values, canonical strings (`lite`, `full`), and aliases (`lazy`, `eager`).
-- **`withSkillInstructions()` Helper**: Compose prompt-caching-friendly system instructions with static content first, skill instructions in the middle, and dynamic content last. Both parameters are optional.
-- **Cache Configuration**: New `cache.enabled` and `cache.store` config keys with environment variable support (`SKILLS_CACHE_ENABLED`, `SKILLS_CACHE_STORE`).
-- **Symfony YAML v8 Support**: Permit `symfony/yaml` v7.x or v8.x.
-- **Backward Compatibility Test Suite**: Dedicated BC tests covering all v1.0.0 usage patterns.
-
-### Fixed
-
-- **Per-Skill Mode Persistence**: `SkillRegistry::load()` no longer overwrites explicit mode preferences when a skill is re-loaded without a mode argument (e.g. via `SkillLoader` tool re-scan).
-- **`withSkillInstructions()` Signature**: Both `$staticPrompt` and `$dynamicPrompt` are now optional, preserving backward compatibility with existing agent implementations.
-
-### Changed
-
-- **README**: Restored simple Quick Start example, moved advanced features (per-skill modes, prompt caching) to a dedicated Advanced Usage section.
+## [Unreleased]
 
 ## [v1.0.0](https://github.com/anilcancakir/laravel-ai-sdk-skills/releases/tag/v1.0.0) - 2026-02-11
 
