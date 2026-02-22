@@ -2,6 +2,7 @@
 
 namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Unit;
 
+use AnilcanCakir\LaravelAiSdkSkills\Enums\SkillInclusionMode;
 use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
@@ -180,6 +181,140 @@ XML;
 
         $this->assertStringNotContainsString('Should not appear', $instructions);
         $this->assertStringContainsString('name="Test Skill"', $instructions);
+    }
+
+    public function test_it_uses_per_skill_modes_with_config_fallback()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+
+        $fullSkill = new Skill(
+            name: 'skill-full',
+            description: 'Full mode skill',
+            instructions: 'Full instructions visible.',
+            tools: [],
+        );
+
+        $defaultSkill = new Skill(
+            name: 'skill-default',
+            description: 'Default mode skill',
+            instructions: 'Default instructions hidden in lite.',
+            tools: [],
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-full')
+            ->andReturn($fullSkill);
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-default')
+            ->andReturn($defaultSkill);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('skill-full', SkillInclusionMode::Full);
+        $registry->load('skill-default');
+
+        $instructions = $registry->instructions();
+
+        $this->assertStringContainsString('<skill name="skill-full">', $instructions);
+        $this->assertStringContainsString('Full instructions visible.', $instructions);
+        $this->assertStringContainsString('<skill name="skill-default" description="Default mode skill" />', $instructions);
+        $this->assertStringNotContainsString('Default instructions hidden in lite.', $instructions);
+    }
+
+    public function test_global_override_forces_all_skills_mode()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+
+        $skillA = new Skill(
+            name: 'skill-a',
+            description: 'Skill A',
+            instructions: 'Instruction A',
+            tools: [],
+        );
+
+        $skillB = new Skill(
+            name: 'skill-b',
+            description: 'Skill B',
+            instructions: 'Instruction B',
+            tools: [],
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-a')
+            ->andReturn($skillA);
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-b')
+            ->andReturn($skillB);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('skill-a', SkillInclusionMode::Full);
+        $registry->load('skill-b', SkillInclusionMode::Full);
+
+        $instructions = $registry->instructions('lite');
+
+        $this->assertStringNotContainsString('Instruction A', $instructions);
+        $this->assertStringNotContainsString('Instruction B', $instructions);
+        $this->assertStringContainsString('description="Skill A"', $instructions);
+        $this->assertStringContainsString('description="Skill B"', $instructions);
+    }
+
+    public function test_invalid_per_skill_mode_logs_warning_and_falls_back_to_config()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+        $skill = new Skill(
+            name: 'invalid-mode-skill',
+            description: 'Skill with invalid mode',
+            instructions: 'Should not appear in lite.',
+            tools: [],
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('invalid-mode-skill')
+            ->andReturn($skill);
+
+        Log::shouldReceive('warning')->once();
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('invalid-mode-skill', 'fast');
+
+        $instructions = $registry->instructions();
+
+        $this->assertStringContainsString('description="Skill with invalid mode"', $instructions);
+        $this->assertStringNotContainsString('Should not appear in lite.', $instructions);
+    }
+
+    public function test_invalid_global_override_logs_warning_and_falls_back_to_config()
+    {
+        config(['skills.discovery_mode' => 'full']);
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+        $skill = new Skill(
+            name: 'fallback-skill',
+            description: 'Fallback mode skill',
+            instructions: 'Visible in full mode.',
+            tools: [],
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('fallback-skill')
+            ->andReturn($skill);
+
+        Log::shouldReceive('warning')->once();
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('fallback-skill');
+
+        $instructions = $registry->instructions('invalid');
+
+        $this->assertStringContainsString('<skill name="fallback-skill">', $instructions);
+        $this->assertStringContainsString('Visible in full mode.', $instructions);
     }
 
     public function test_it_handles_missing_tool_classes_gracefully()
