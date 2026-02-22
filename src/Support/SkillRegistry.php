@@ -59,7 +59,9 @@ class SkillRegistry
             }
 
             $this->loaded[$slug] = $skill;
-            $this->loadedModes[$slug] = $resolvedMode;
+            if ($mode !== null) {
+                $this->loadedModes[$slug] = $resolvedMode;
+            }
         }
 
         return $skill;

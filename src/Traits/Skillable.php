@@ -112,7 +112,7 @@ trait Skillable
      * @param  string  $staticPrompt  The stable/base system prompt content to place first.
      * @param  string  $dynamicPrompt  Runtime-varying prompt content to append at the end.
      */
-    public function withSkillInstructions(string $staticPrompt, string $dynamicPrompt = ''): string
+    public function withSkillInstructions(string $staticPrompt = '', string $dynamicPrompt = ''): string
     {
         $segments = [$staticPrompt, $this->skillInstructions(), $dynamicPrompt];
         $segments = array_values(array_filter(

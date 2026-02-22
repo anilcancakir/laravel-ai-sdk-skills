@@ -415,6 +415,34 @@ XML;
         $this->assertArrayHasKey('skill-b', $loaded);
     }
 
+    public function test_reload_without_mode_preserves_existing_per_skill_mode()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+        $skill = new Skill(
+            name: 'persistent-skill',
+            description: 'Skill with persistent mode',
+            instructions: 'Should remain full after re-load.',
+            tools: [],
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('persistent-skill')
+            ->andReturn($skill);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('persistent-skill', SkillInclusionMode::Full);
+
+        // Re-load without mode (simulates SkillLoader tool re-scan)
+        $registry->load('persistent-skill');
+
+        $instructions = $registry->instructions();
+
+        $this->assertStringContainsString('<skill name="persistent-skill">', $instructions);
+        $this->assertStringContainsString('Should remain full after re-load.', $instructions);
+    }
+
     public function test_loading_same_skill_twice_is_idempotent()
     {
         $discovery = Mockery::mock(SkillDiscovery::class);

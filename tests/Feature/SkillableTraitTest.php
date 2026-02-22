@@ -246,6 +246,30 @@ EOT
         $this->deleteFixtureSkill('join-skill');
     }
 
+    public function test_with_skill_instructions_without_any_prompts_returns_only_skills()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('bare-skill', 'Bare skill', 'Bare instructions.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['bare-skill'];
+            }
+        };
+
+        $skillsBlock = $agent->skillInstructions();
+        $prompt = $agent->withSkillInstructions();
+
+        $this->assertSame($skillsBlock, $prompt);
+        $this->assertStringContainsString('bare-skill', $prompt);
+
+        $this->deleteFixtureSkill('bare-skill');
+    }
+
     public function test_with_skill_instructions_handles_disabled_skills_without_skill_block()
     {
         config(['skills.enabled' => false]);
@@ -414,6 +438,187 @@ EOT
         $this->assertStringNotContainsString('Should stay hidden by fallback.', $instructions);
 
         $this->deleteFixtureSkill('invalid-mode-skill');
+    }
+
+    /**
+     * -------------------------------------------------------
+     * BACKWARD COMPATIBILITY TESTS
+     * -------------------------------------------------------
+     * These tests simulate the exact patterns a v1.0.0 user
+     * would write. They MUST pass without modification.
+     * -------------------------------------------------------
+     */
+    public function test_bc_simple_string_array_skills_still_works()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('bc-skill-a', 'Skill A', 'Instructions A');
+        $this->createFixtureSkill('bc-skill-b', 'Skill B', 'Instructions B');
+
+        // v1.0.0 pattern: simple string array
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['bc-skill-a', 'bc-skill-b'];
+            }
+        };
+
+        $tools = $agent->skillTools();
+        $this->assertNotEmpty($tools);
+
+        $instructions = $agent->skillInstructions();
+        $this->assertStringContainsString('bc-skill-a', $instructions);
+        $this->assertStringContainsString('bc-skill-b', $instructions);
+
+        $registry = resolve(SkillRegistry::class);
+        $this->assertTrue($registry->isLoaded('bc-skill-a'));
+        $this->assertTrue($registry->isLoaded('bc-skill-b'));
+
+        $this->deleteFixtureSkill('bc-skill-a');
+        $this->deleteFixtureSkill('bc-skill-b');
+    }
+
+    public function test_bc_skill_instructions_with_no_args()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('bc-noarg', 'No arg skill', 'Full body.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['bc-noarg'];
+            }
+        };
+
+        // v1.0.0 pattern: no args
+        $result = $agent->skillInstructions();
+        $this->assertIsString($result);
+        $this->assertStringContainsString('bc-noarg', $result);
+
+        $this->deleteFixtureSkill('bc-noarg');
+    }
+
+    public function test_bc_skill_instructions_with_string_mode_lite()
+    {
+        config(['skills.discovery_mode' => 'full']);
+        $this->createFixtureSkill('bc-mode', 'Mode skill', 'Should be hidden in lite.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['bc-mode'];
+            }
+        };
+
+        // v1.0.0 pattern: string 'lite' override
+        $lite = $agent->skillInstructions('lite');
+        $this->assertStringNotContainsString('Should be hidden in lite.', $lite);
+        $this->assertStringContainsString('description="Mode skill"', $lite);
+
+        $this->deleteFixtureSkill('bc-mode');
+    }
+
+    public function test_bc_skill_instructions_with_string_mode_full()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('bc-full', 'Full skill', 'Visible in full mode.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['bc-full'];
+            }
+        };
+
+        // v1.0.0 pattern: string 'full' override
+        $full = $agent->skillInstructions('full');
+        $this->assertStringContainsString('Visible in full mode.', $full);
+        $this->assertStringContainsString('<skill name="bc-full">', $full);
+
+        $this->deleteFixtureSkill('bc-full');
+    }
+
+    public function test_bc_concat_pattern_still_works()
+    {
+        config(['skills.discovery_mode' => 'lite']);
+        $this->createFixtureSkill('bc-concat', 'Concat skill', 'Concat body.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['bc-concat'];
+            }
+
+            // v1.0.0 pattern: manual string concatenation
+            public function instructions(): string
+            {
+                return "Base instructions...\n\n".$this->skillInstructions();
+            }
+        };
+
+        $result = $agent->instructions();
+        $this->assertStringStartsWith('Base instructions...', $result);
+        $this->assertStringContainsString('bc-concat', $result);
+        $this->assertStringContainsString("\n\n", $result);
+
+        $this->deleteFixtureSkill('bc-concat');
+    }
+
+    public function test_bc_empty_skills_returns_empty()
+    {
+        // v1.0.0 pattern: default empty skills()
+        $agent = new class
+        {
+            use Skillable;
+        };
+
+        $tools = $agent->skillTools();
+        $this->assertNotEmpty($tools); // meta-tools still present
+
+        $instructions = $agent->skillInstructions();
+        $this->assertEmpty($instructions);
+    }
+
+    public function test_bc_skill_tools_returns_meta_tools()
+    {
+        $this->createFixtureSkill('bc-tools', 'Tools skill', 'Has tools.');
+
+        $agent = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['bc-tools'];
+            }
+        };
+
+        // v1.0.0 pattern: skillTools() returns meta-tools + skill tools
+        $tools = $agent->skillTools();
+        $this->assertIsArray($tools);
+        $this->assertNotEmpty($tools);
+
+        // Meta-tools should always be present
+        $toolNames = array_map(fn ($t) => $t->name(), $tools);
+        $this->assertContains('list_skills', $toolNames);
+        $this->assertContains('skill', $toolNames);
+        $this->assertContains('skill_read', $toolNames);
+
+        $this->deleteFixtureSkill('bc-tools');
     }
 
     private function createFixtureSkill(string $slug, string $description, string $instructions): void
