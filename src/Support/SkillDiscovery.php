@@ -19,12 +19,14 @@ class SkillDiscovery
      * @param  array  $paths  The paths to scan for local skills.
      * @param  bool  $cacheEnabled  Whether to enable caching.
      * @param  int  $cacheTtl  The cache time-to-live in seconds.
+     * @param  string|null  $cacheStore  The cache store to use for skills cache.
      * @return void
      */
     public function __construct(
         protected array $paths,
         protected bool $cacheEnabled = true,
         protected int $cacheTtl = 3600,
+        protected ?string $cacheStore = null,
     ) {}
 
     /**
@@ -60,6 +62,10 @@ class SkillDiscovery
     public function discover(): Collection
     {
         if ($this->cacheEnabled) {
+            if ($this->cacheStore !== null) {
+                return Cache::store($this->cacheStore)->remember('ai_sdk_skills', $this->cacheTtl, fn () => $this->scan());
+            }
+
             return Cache::remember('ai_sdk_skills', $this->cacheTtl, fn () => $this->scan());
         }
 
@@ -84,6 +90,12 @@ class SkillDiscovery
     public function clearCache(): void
     {
         if ($this->cacheEnabled) {
+            if ($this->cacheStore !== null) {
+                Cache::store($this->cacheStore)->forget('ai_sdk_skills');
+
+                return;
+            }
+
             Cache::forget('ai_sdk_skills');
         }
     }
