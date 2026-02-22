@@ -1,3 +1,5 @@
+<p align="center"><img src="/art/banner.jpeg" alt="Laravel AI SDK Skills"></p>
+
 <p align="center">
 <a href="https://github.com/anilcancakir/laravel-ai-sdk-skills/actions"><img src="https://github.com/anilcancakir/laravel-ai-sdk-skills/actions/workflows/tests.yml/badge.svg" alt="Build Status"></a>
 <a href="https://packagist.org/packages/anilcancakir/laravel-ai-sdk-skills"><img src="https://img.shields.io/packagist/dt/anilcancakir/laravel-ai-sdk-skills" alt="Total Downloads"></a>
