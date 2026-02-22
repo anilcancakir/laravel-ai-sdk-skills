@@ -115,15 +115,8 @@ trait Skillable
      */
     public function withSkillInstructions(string $staticPrompt = '', string $dynamicPrompt = ''): string
     {
-        $segments = [$staticPrompt, $this->skillInstructions(), $dynamicPrompt];
-        $segments = array_values(array_filter(
-            $segments,
-            static fn (string $segment): bool => trim($segment) !== ''
-        ));
-
-        return implode("\n\n", $segments);
+        return $this->composeInstructions($staticPrompt, $dynamicPrompt);
     }
-
 
     /**
      * Compose full system instructions using Prompt objects or plain strings.
@@ -139,7 +132,6 @@ trait Skillable
     {
         $static = $staticPrompt instanceof Prompt ? $staticPrompt->toString() : $staticPrompt;
         $dynamic = $dynamicPrompt instanceof Prompt ? $dynamicPrompt->toString() : $dynamicPrompt;
-
         $segments = [$static, $this->skillInstructions(), $dynamic];
         $segments = array_values(array_filter(
             $segments,
@@ -148,6 +140,7 @@ trait Skillable
 
         return implode("\n\n", $segments);
     }
+
     /**
      * Boot skills if not already booted.
      */

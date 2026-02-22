@@ -3,12 +3,12 @@
 namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Feature;
 
 use AnilcanCakir\LaravelAiSdkSkills\Enums\SkillInclusionMode;
+use AnilcanCakir\LaravelAiSdkSkills\Support\Prompt;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use AnilcanCakir\LaravelAiSdkSkills\Support\Prompt;
 
 class SkillableTraitTest extends TestCase
 {
@@ -645,7 +645,6 @@ EOT
      * composeInstructions() Tests
      * -------------------------------------------------------
      */
-
     public function test_compose_instructions_with_plain_strings(): void
     {
         config(['skills.discovery_mode' => 'lite']);

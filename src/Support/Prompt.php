@@ -118,7 +118,7 @@ final class Prompt implements \Stringable
         $replacements = [];
 
         foreach ($data as $key => $value) {
-            $replacements['{{' . $key . '}}'] = (string) $value;
+            $replacements['{{'.$key.'}}'] = (string) $value;
         }
 
         return strtr($template, $replacements);
