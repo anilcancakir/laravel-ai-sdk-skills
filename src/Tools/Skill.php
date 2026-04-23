@@ -10,8 +10,11 @@ use Stringable;
 
 /**
  * Tool to load a specific AI skill.
+ *
+ * The LLM-facing tool name is derived from the class basename ("Skill")
+ * by laravel/ai gateways (see Laravel\Ai\Gateway\*\Concerns\MapsTools).
  */
-class SkillLoader implements Tool
+class Skill implements Tool
 {
     /**
      * Create a new skill loader tool instance.
@@ -22,14 +25,6 @@ class SkillLoader implements Tool
     public function __construct(
         protected SkillRegistry $registry,
     ) {}
-
-    /**
-     * Get the tool's name.
-     */
-    public function name(): string
-    {
-        return 'skill';
-    }
 
     /**
      * Get the description of the tool's purpose.
@@ -80,9 +75,9 @@ class SkillLoader implements Tool
                 $exampleFile = $referenceFiles[0];
 
                 $output .= "\n\n<skill_references skill=\"{$skill->name}\">\n"
-                    ."Available reference files (use `skill_read` tool to read them):\n"
+                    ."Available reference files (use `SkillRead` tool to read them):\n"
                     ."{$fileList}\n\n"
-                    ."To read a reference file, call skill_read with BOTH required parameters:\n"
+                    ."To read a reference file, call SkillRead with BOTH required parameters:\n"
                     ."  skill: \"{$skill->name}\"\n"
                     ."  file: \"{$exampleFile}\"\n"
                     .'</skill_references>';

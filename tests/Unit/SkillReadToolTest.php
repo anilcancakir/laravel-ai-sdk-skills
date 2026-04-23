@@ -5,11 +5,11 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Unit;
 use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
-use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillReferenceReader;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillRead;
 use Laravel\Ai\Tools\Request;
 use Mockery;
 
-class SkillReferenceReaderTest extends TestCase
+class SkillReadToolTest extends TestCase
 {
     protected function tearDown(): void
     {
@@ -20,15 +20,15 @@ class SkillReferenceReaderTest extends TestCase
     public function test_tool_name_is_skill_read(): void
     {
         $registry = Mockery::mock(SkillRegistry::class);
-        $tool = new SkillReferenceReader($registry);
+        $tool = new SkillRead($registry);
 
-        $this->assertEquals('skill_read', $tool->name());
+        $this->assertEquals('SkillRead', class_basename($tool));
     }
 
     public function test_it_defines_schema(): void
     {
         $registry = Mockery::mock(SkillRegistry::class);
-        $tool = new SkillReferenceReader($registry);
+        $tool = new SkillRead($registry);
 
         $this->assertNotEmpty($tool->description());
         // We can't easily test schema() output without a real JsonSchema implementation,
@@ -58,7 +58,7 @@ class SkillReferenceReaderTest extends TestCase
             ->with('test-skill')
             ->andReturn($skill);
 
-        $tool = new SkillReferenceReader($registry);
+        $tool = new SkillRead($registry);
 
         $result = $tool->handle(new Request([
             'skill' => 'test-skill',
@@ -98,7 +98,7 @@ class SkillReferenceReaderTest extends TestCase
             ->with('test-skill')
             ->andReturn($skill);
 
-        $tool = new SkillReferenceReader($registry);
+        $tool = new SkillRead($registry);
 
         // Attempt traversal
         $result = $tool->handle(new Request([
@@ -122,7 +122,7 @@ class SkillReferenceReaderTest extends TestCase
             ->with('unknown-skill')
             ->andReturn(null);
 
-        $tool = new SkillReferenceReader($registry);
+        $tool = new SkillRead($registry);
 
         $result = $tool->handle(new Request([
             'skill' => 'unknown-skill',
@@ -149,7 +149,7 @@ class SkillReferenceReaderTest extends TestCase
             ->with('remote-skill')
             ->andReturn($skill);
 
-        $tool = new SkillReferenceReader($registry);
+        $tool = new SkillRead($registry);
 
         $result = $tool->handle(new Request([
             'skill' => 'remote-skill',
@@ -179,7 +179,7 @@ class SkillReferenceReaderTest extends TestCase
             ->with('test-skill')
             ->andReturn($skill);
 
-        $tool = new SkillReferenceReader($registry);
+        $tool = new SkillRead($registry);
 
         $result = $tool->handle(new Request([
             'skill' => 'test-skill',
@@ -214,7 +214,7 @@ class SkillReferenceReaderTest extends TestCase
             ->with('test-skill')
             ->andReturn($skill);
 
-        $tool = new SkillReferenceReader($registry);
+        $tool = new SkillRead($registry);
 
         $result = $tool->handle(new Request([
             'skill' => 'test-skill',

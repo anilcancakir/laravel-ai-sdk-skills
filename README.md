@@ -15,6 +15,14 @@ Instead of embedding all logic in your agent class or bloating the context windo
 
 For a detailed walkthrough with real-world examples, check out the [announcement article on Medium](https://medium.com/@anilcan/level-up-your-laravel-ai-agents-with-modular-skills-39da3fe9fe4b).
 
+## Requirements
+
+| Dependency | Supported |
+|------------|-----------|
+| PHP | `^8.3` or `^8.4` |
+| Laravel | `^12.0` or `^13.0` |
+| `laravel/ai` | `^0.6.3` |
+
 ## Installation
 
 Install the package via composer:
@@ -69,7 +77,7 @@ class Assistant implements Agent, HasTools
 }
 ```
 
-By calling `$this->skillTools()`, your agent automatically gains access to meta-tools like `list_skills` and `skill`, enabling dynamic discovery.
+By calling `$this->skillTools()`, your agent automatically gains access to meta-tools like `ListSkills` and `Skill`, enabling dynamic discovery.
 
 ## The Skill Format
 
@@ -211,12 +219,15 @@ php artisan skills:clear
 
 When you use the `Skillable` trait, your agent gets these tools automatically:
 
-- `list_skills`: Returns a list of all available skills the agent can load.
-- `skill`: Loads the full instructions and tools for a specific skill into the conversation.
-- `skill_read`: Safely reads supplementary files (like `/docs/api.md`) from within a loaded skill's directory.
+- `ListSkills`: Returns a list of all available skills the agent can load.
+- `Skill`: Loads the full instructions and tools for a specific skill into the conversation.
+- `SkillRead`: Safely reads supplementary files (like `/docs/api.md`) from within a loaded skill's directory.
 
 > [!NOTE]
-> The `skill_read` tool is restricted to the skill's own directory, ensuring your agent can't wander off into sensitive parts of your filesystem.
+> The `SkillRead` tool is restricted to the skill's own directory, ensuring your agent can't wander off into sensitive parts of your filesystem.
+
+> [!NOTE]
+> Tool names are derived from the class basename by upstream `laravel/ai` gateways, so these tools appear to the LLM as `ListSkills`, `Skill`, and `SkillRead` (PascalCase).
 
 ## Testing
 

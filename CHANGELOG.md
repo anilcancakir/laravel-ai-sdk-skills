@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - v1.2.0
+
+### Breaking Changes
+- **Requires `laravel/ai ^0.6.3`** (was `^0.1.3`). The v0.1.x-v0.5.x line is no longer supported.
+- **Minimum PHP is now `^8.3`** (was `^8.2`). Matches the `laravel/ai` v0.6 baseline.
+- **Minimum Laravel is now `^12.0`** (was `^11.0`). Laravel 13 is also supported.
+- **Tool class renames**:
+  - `Tools\SkillLoader` is now `Tools\Skill`.
+  - `Tools\SkillReferenceReader` is now `Tools\SkillRead`.
+  - `Tools\ListSkills` is unchanged.
+- **LLM-facing tool names are PascalCase**: `ListSkills`, `Skill`, `SkillRead`. Previously, the custom `name()` method returned `list_skills`, `skill`, `skill_read`, but upstream gateways derive the LLM-facing name from `class_basename()`, so the snake_case names were never actually seen by the LLM. If your agent prompts, docs, or fixtures reference the old names, update them to the PascalCase equivalents.
+
+### Changed
+- `laravel/ai` moved from `require-dev` to `require`. The package needs it at runtime to implement the `Tool` contract.
+- `orchestra/testbench` bumped to `^10.0|^11.0`, `phpunit/phpunit` bumped to `^11.0|^12.0`.
+
+### Removed
+- `Tool::name()` method on meta-tool classes. Upstream uses `class_basename()` for tool naming, so the method was unused.
+- `tests/Stubs/AiStubs.php` fictional `Tool` interface stub. Tests now exercise the real `Laravel\Ai\Contracts\Tool` contract via the runtime dependency.
+
+### CI
+- GitHub Actions matrix expanded to PHP 8.3/8.4 x Laravel 12/13.
+
 ## [v1.1.0](https://github.com/anilcancakir/laravel-ai-sdk-skills/releases/tag/v1.1.0) - 2026-02-22
 ### Added
 - **Prompt Value Object** (`Support\Prompt`): Immutable, `Stringable` value object for composing AI agent prompt content from multiple sources:

@@ -608,16 +608,17 @@ EOT
             }
         };
 
-        // v1.0.0 pattern: skillTools() returns meta-tools + skill tools
+        // skillTools() returns meta-tools + skill tools
         $tools = $agent->skillTools();
         $this->assertIsArray($tools);
         $this->assertNotEmpty($tools);
 
-        // Meta-tools should always be present
-        $toolNames = array_map(fn ($t) => $t->name(), $tools);
-        $this->assertContains('list_skills', $toolNames);
-        $this->assertContains('skill', $toolNames);
-        $this->assertContains('skill_read', $toolNames);
+        // Meta-tools should always be present (LLM-facing name comes from class_basename
+        // since upstream laravel/ai v0.6+ gateways resolve tool names this way)
+        $toolNames = array_map(fn ($t) => class_basename($t), $tools);
+        $this->assertContains('ListSkills', $toolNames);
+        $this->assertContains('Skill', $toolNames);
+        $this->assertContains('SkillRead', $toolNames);
 
         $this->deleteFixtureSkill('bc-tools');
     }

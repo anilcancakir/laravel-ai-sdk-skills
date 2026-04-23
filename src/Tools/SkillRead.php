@@ -8,23 +8,24 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
-class SkillReferenceReader implements Tool
+/**
+ * Tool to read a reference file from a loaded skill's directory.
+ *
+ * The LLM-facing tool name is derived from the class basename ("SkillRead")
+ * by laravel/ai gateways (see Laravel\Ai\Gateway\*\Concerns\MapsTools).
+ */
+class SkillRead implements Tool
 {
     public function __construct(
         protected SkillRegistry $registry,
     ) {}
-
-    public function name(): string
-    {
-        return 'skill_read';
-    }
 
     public function description(): Stringable|string
     {
         return 'Read a reference file from a loaded skill\'s directory. '
             .'Requires BOTH parameters: "skill" (the skill slug, e.g. "wind-ui") '
             .'AND "file" (the relative path, e.g. "references/utilities.md"). '
-            .'The skill must be loaded first via the "skill" tool. '
+            .'The skill must be loaded first via the Skill tool. '
             .'Available reference files are listed when a skill is loaded.';
     }
 
@@ -48,7 +49,7 @@ class SkillReferenceReader implements Tool
         $skill = $this->registry->get($skillName);
 
         if ($skill === null) {
-            return "Error: Skill [{$skillName}] is not loaded. Load it first using the \"skill\" tool.";
+            return "Error: Skill [{$skillName}] is not loaded. Load it first using the Skill tool.";
         }
 
         if ($skill->basePath === null) {

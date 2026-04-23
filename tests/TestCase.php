@@ -2,8 +2,6 @@
 
 namespace AnilcanCakir\LaravelAiSdkSkills\Tests;
 
-require_once __DIR__.'/Stubs/AiStubs.php';
-
 use AnilcanCakir\LaravelAiSdkSkills\SkillsServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
