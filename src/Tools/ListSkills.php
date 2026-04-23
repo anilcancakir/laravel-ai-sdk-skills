@@ -28,14 +28,6 @@ class ListSkills implements Tool
     ) {}
 
     /**
-     * Get the tool's name.
-     */
-    public function name(): string
-    {
-        return 'list_skills';
-    }
-
-    /**
      * Get the description of the tool's purpose.
      */
     public function description(): Stringable|string
