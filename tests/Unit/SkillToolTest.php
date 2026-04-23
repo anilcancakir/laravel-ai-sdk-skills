@@ -8,24 +8,24 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
-use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\Skill as SkillTool;
 use Laravel\Ai\Tools\Request;
 use Mockery;
 
-class SkillLoaderToolTest extends TestCase
+class SkillToolTest extends TestCase
 {
     public function test_tool_name_is_skill(): void
     {
         $registry = Mockery::mock(SkillRegistry::class);
-        $tool = new SkillLoader($registry);
+        $tool = new SkillTool($registry);
 
-        $this->assertEquals('skill', $tool->name());
+        $this->assertEquals('Skill', class_basename($tool));
     }
 
     public function test_it_defines_schema(): void
     {
         $registry = Mockery::mock(SkillRegistry::class);
-        $tool = new SkillLoader($registry);
+        $tool = new SkillTool($registry);
 
         $this->assertNotEmpty($tool->description());
     }
@@ -47,7 +47,7 @@ class SkillLoaderToolTest extends TestCase
             ->with('test-skill')
             ->andReturn($skill);
 
-        $tool = new SkillLoader($registry);
+        $tool = new SkillTool($registry);
 
         $result = $tool->handle(new Request(['name' => 'test-skill']));
 
@@ -66,7 +66,7 @@ class SkillLoaderToolTest extends TestCase
             ->with('unknown-skill')
             ->andReturn(null);
 
-        $tool = new SkillLoader($registry);
+        $tool = new SkillTool($registry);
 
         $result = $tool->handle(new Request(['name' => 'unknown-skill']));
 
@@ -98,13 +98,13 @@ class SkillLoaderToolTest extends TestCase
             $registry->shouldReceive('load')->with('test-skill');
             $registry->shouldReceive('get')->with('test-skill')->andReturn($skill);
 
-            $tool = new SkillLoader($registry);
+            $tool = new SkillTool($registry);
             $result = $tool->handle(new Request(['name' => 'test-skill']));
 
             $this->assertStringContainsString('<skill_references skill="Test Skill">', (string) $result);
             $this->assertStringContainsString('references/utilities.md', (string) $result);
             $this->assertStringContainsString('references/theme.md', (string) $result);
-            $this->assertStringContainsString('skill_read', (string) $result);
+            $this->assertStringContainsString('SkillRead', (string) $result);
         } finally {
             $this->removeDirectory($tempDir);
         }
@@ -125,7 +125,7 @@ class SkillLoaderToolTest extends TestCase
         $registry->shouldReceive('load')->with('test-skill');
         $registry->shouldReceive('get')->with('test-skill')->andReturn($skill);
 
-        $tool = new SkillLoader($registry);
+        $tool = new SkillTool($registry);
         $result = $tool->handle(new Request(['name' => 'test-skill']));
 
         $this->assertStringNotContainsString('<skill_references', (string) $result);

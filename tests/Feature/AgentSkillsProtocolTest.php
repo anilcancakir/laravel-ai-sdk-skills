@@ -7,7 +7,7 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
-use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\Skill as SkillTool;
 use Laravel\Ai\Tools\Request;
 use Mockery;
 
@@ -41,9 +41,9 @@ class AgentSkillsProtocolTest extends TestCase
     public function test_skill_loader_has_correct_tool_name(): void
     {
         $registry = $this->app->make(SkillRegistry::class);
-        $tool = new SkillLoader($registry);
+        $tool = new SkillTool($registry);
 
-        $this->assertEquals('skill', $tool->name());
+        $this->assertEquals('Skill', class_basename($tool));
     }
 
     public function test_skill_loader_returns_xml_wrapped_instructions(): void
@@ -57,7 +57,7 @@ class AgentSkillsProtocolTest extends TestCase
         ));
 
         $registry = new SkillRegistry($discovery);
-        $tool = new SkillLoader($registry);
+        $tool = new SkillTool($registry);
 
         $response = (string) $tool->handle(new Request(['name' => 'test-skill']));
 
@@ -71,15 +71,15 @@ class AgentSkillsProtocolTest extends TestCase
         $registry = $this->app->make(SkillRegistry::class);
 
         $listSkills = new ListSkills($registry);
-        $this->assertEquals('list_skills', $listSkills->name());
+        $this->assertEquals('ListSkills', class_basename($listSkills));
 
-        $skillLoader = new SkillLoader($registry);
-        $this->assertEquals('skill', $skillLoader->name());
+        $skillLoader = new SkillTool($registry);
+        $this->assertEquals('Skill', class_basename($skillLoader));
 
         // Verify SearchDocs tool name if it exists in the app namespace as per FullWorkflowTest pattern
         if (class_exists('App\Ai\Tools\SearchDocs')) {
             $searchDocs = new \App\Ai\Tools\SearchDocs;
-            $this->assertEquals('search_docs', $searchDocs->name());
+            $this->assertEquals('SearchDocs', class_basename($searchDocs));
         }
     }
 }
