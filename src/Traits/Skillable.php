@@ -5,8 +5,8 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Traits;
 use AnilcanCakir\LaravelAiSdkSkills\Support\Prompt;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
-use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
-use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillReferenceReader;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\Skill as SkillTool;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillRead;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\Tool;
 
@@ -59,7 +59,7 @@ trait Skillable
     }
 
     /**
-     * Get skill tools including meta-tools (ListSkills, SkillLoader) and loaded skill tools.
+     * Get skill tools including meta-tools (ListSkills, Skill, SkillRead) and loaded skill tools.
      *
      * This method lazily boots skills on first call.
      *
@@ -78,8 +78,8 @@ trait Skillable
         return array_merge(
             [
                 new ListSkills($registry),
-                new SkillLoader($registry),
-                new SkillReferenceReader($registry),
+                new SkillTool($registry),
+                new SkillRead($registry),
             ],
             $registry->tools()
         );
