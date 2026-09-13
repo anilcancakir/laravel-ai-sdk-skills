@@ -9,6 +9,7 @@ if (! interface_exists(JsonSchema::class)) {
 namespace Laravel\Ai\Contracts;
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Tools\Request;
 
 if (! interface_exists(Tool::class)) {
     interface Tool
@@ -19,7 +20,7 @@ if (! interface_exists(Tool::class)) {
 
         public function schema(JsonSchema $schema): array;
 
-        public function handle(\Laravel\Ai\Tools\Request $request): \Stringable|string;
+        public function handle(Request $request): \Stringable|string;
     }
 }
 

@@ -8,6 +8,7 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
+use App\Ai\Tools\SearchDocs;
 use Laravel\Ai\Tools\Request;
 use Mockery;
 
@@ -78,7 +79,7 @@ class AgentSkillsProtocolTest extends TestCase
 
         // Verify SearchDocs tool name if it exists in the app namespace as per FullWorkflowTest pattern
         if (class_exists('App\Ai\Tools\SearchDocs')) {
-            $searchDocs = new \App\Ai\Tools\SearchDocs;
+            $searchDocs = new SearchDocs;
             $this->assertEquals('search_docs', $searchDocs->name());
         }
     }

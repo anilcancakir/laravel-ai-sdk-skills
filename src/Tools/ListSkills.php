@@ -4,6 +4,7 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tools;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Collection;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -52,7 +53,7 @@ class ListSkills implements Tool
     /**
      * Build XML representation of available skills.
      *
-     * @param  \Illuminate\Support\Collection  $skills  The skills to include.
+     * @param  Collection  $skills  The skills to include.
      * @return string The XML string.
      */
     protected function buildSkillsXml($skills): string
