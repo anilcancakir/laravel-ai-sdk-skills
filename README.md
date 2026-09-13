@@ -17,6 +17,16 @@ For a detailed walkthrough with real-world examples, check out the [announcement
 
 ## Installation
 
+### Requirements
+
+| | |
+|---|---|
+| PHP | 8.3 or newer |
+| Laravel | 12 or 13 |
+| `laravel/ai` | `>=0.7 <0.12`, installed for you as a runtime dependency |
+
+On PHP 8.2 or Laravel 11, Composer resolves to v1.1.0 instead. Laravel 11 is not supported because it cannot be installed: every release reachable from `orchestra/testbench` 9.x is blocked by unpatched security advisories.
+
 Install the package via composer:
 
 ```shell

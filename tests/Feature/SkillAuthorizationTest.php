@@ -4,6 +4,7 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Feature;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
 use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
 use Illuminate\Support\Facades\File;
@@ -42,6 +43,23 @@ class SkillAuthorizationTest extends TestCase
         $this->assertFalse($registry->isLoaded('admin-only-skill'));
         $this->assertStringNotContainsString('SECRET_ADMIN_INSTRUCTIONS', $result);
         Log::shouldHaveReceived('warning')->atLeast()->once();
+    }
+
+    public function test_enforcement_is_off_by_default_so_nothing_is_filtered(): void
+    {
+        // Every other test here sets enforce_declared explicitly, so without this one
+        // nothing guards the default and a refactor that hoisted the config read into
+        // declares() would silently start refusing on a stock install.
+        $this->assertFalse(config('skills.enforce_declared'));
+
+        $registry = $this->app->make(SkillRegistry::class);
+
+        $loaded = (string) (new SkillLoader($registry))->handle(new Request(['name' => 'admin-only-skill']));
+        $listed = (string) (new ListSkills($registry))->handle(new Request([]));
+
+        $this->assertStringContainsString('SECRET_ADMIN_INSTRUCTIONS', $loaded);
+        $this->assertStringContainsString('admin-only-skill', $listed);
+        $this->assertTrue($registry->isLoaded('admin-only-skill'));
     }
 
     public function test_a_hand_built_loader_refuses_rather_than_serving_every_booted_agents_skills(): void
