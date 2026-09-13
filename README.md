@@ -123,6 +123,17 @@ SKILLS_CACHE_STORE=file      # Use a specific cache store instead of the default
 
 Run `php artisan skills:clear` to flush the cache manually.
 
+### Load-time Authorization
+
+By default, `enforce_declared` is disabled, meaning your agent can discover and load any skill in the configured paths. When you enable `enforce_declared` in `config/skills.php`, an agent may only access skills it declares in its own `skills()` method:
+
+```php
+// config/skills.php
+'enforce_declared' => env('SKILLS_ENFORCE_DECLARED', false),
+```
+
+When enabled, the `list_skills` tool omits undeclared skills from its output, and the `skill` tool refuses to load them, preventing prompt injection attacks that attempt to discover or load capabilities the agent was not designed to use.
+
 ## Advanced Usage
 
 ### Per-Skill Inclusion Modes
@@ -211,7 +222,7 @@ php artisan skills:clear
 
 When you use the `Skillable` trait, your agent gets these tools automatically:
 
-- `list_skills`: Returns a list of all available skills the agent can load.
+- `list_skills`: Returns every discovered skill; if `enforce_declared` is enabled in the config, only skills the agent declares in its own `skills()` method are returned.
 - `skill`: Loads the full instructions and tools for a specific skill into the conversation.
 - `skill_read`: Safely reads supplementary files (like `/docs/api.md`) from within a loaded skill's directory.
 
