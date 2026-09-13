@@ -44,16 +44,24 @@ jobs:
         run: vendor/bin/pint --test
 
       - name: Run Tests + Coverage
+        # `shell: bash` switches this step from the default `bash -e {0}` to
+        # `bash --noprofile --norc -eo pipefail {0}`. Without pipefail the pipeline
+        # reports tee's exit status, so a red suite would leave this step green.
+        shell: bash
         run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml | tee coverage.txt
 
       - name: Check Coverage Threshold
+        shell: bash
         run: |
-          LINE_COVERAGE=$(grep "Lines:" coverage.txt | awk '{print $2}' | sed 's/%//')
-          echo "Line coverage: $LINE_COVERAGE%"
-          if (( $(echo "$LINE_COVERAGE < 80" | bc -l) )); then
-            echo "Coverage is below 80%!"
+          # phpunit writes the summary with ANSI colour, and "Lines:" also appears in
+          # the per-file rows, so strip the escapes and take only the first match.
+          LINE_COVERAGE=$(sed 's/\x1b\[[0-9;]*m//g' coverage.txt | grep -m1 -E '^\s*Lines:' | awk '{print $2}' | tr -d '%')
+          echo "Line coverage: ${LINE_COVERAGE}%"
+          if [ -z "$LINE_COVERAGE" ]; then
+            echo "Could not parse line coverage from coverage.txt"
             exit 1
           fi
+          awk -v c="$LINE_COVERAGE" 'BEGIN { if (c + 0 < 80) { print "Coverage is below 80%!"; exit 1 } }'
 
   laravel-ai-floor:
     runs-on: ubuntu-latest
