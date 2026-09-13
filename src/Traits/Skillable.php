@@ -43,6 +43,16 @@ trait Skillable
     private bool $skillsBooted = false;
 
     /**
+     * Resolved slugs of the skills this instance declared, filled during boot.
+     *
+     * A declared entry may be a slug, a display name or a path, while the model always
+     * asks by slug, so the allowlist is keyed off what each entry resolved to.
+     *
+     * @var array<int, string>|null
+     */
+    private ?array $declaredSkillSlugs = null;
+
+    /**
      * Get the list of skills to be loaded.
      *
      * Override this method to define which skills your agent uses.
@@ -77,11 +87,11 @@ trait Skillable
 
         return array_merge(
             [
-                new ListSkills($registry),
-                new SkillLoader($registry),
-                new SkillReferenceReader($registry),
+                new ListSkills($registry, declaredSlugs: $this->declaredSkillSlugs),
+                new SkillLoader($registry, $this->declaredSkillSlugs),
+                new SkillReferenceReader($registry, $this->declaredSkillSlugs),
             ],
-            $registry->tools()
+            $registry->tools($this->declaredSkillSlugs)
         );
     }
 
@@ -102,7 +112,7 @@ trait Skillable
 
         $this->bootSkillsIfNeeded();
 
-        return app(SkillRegistry::class)->instructions($mode);
+        return app(SkillRegistry::class)->instructions($mode, $this->declaredSkillSlugs);
     }
 
     /**
@@ -151,6 +161,7 @@ trait Skillable
         }
 
         $this->skillsBooted = true;
+        $this->declaredSkillSlugs = [];
         $registry = app(SkillRegistry::class);
 
         foreach ($this->skills() as $key => $value) {
@@ -164,7 +175,9 @@ trait Skillable
                     continue;
                 }
 
-                $registry->load($value);
+                if ($skill = $registry->load($value)) {
+                    $this->declaredSkillSlugs[] = $skill->slug();
+                }
 
                 continue;
             }
@@ -178,7 +191,9 @@ trait Skillable
                 continue;
             }
 
-            $registry->load($key, $value);
+            if ($skill = $registry->load($key, $value)) {
+                $this->declaredSkillSlugs[] = $skill->slug();
+            }
         }
     }
 }

@@ -19,3 +19,5 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+.ac/

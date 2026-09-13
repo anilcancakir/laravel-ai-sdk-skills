@@ -2,8 +2,10 @@
 
 namespace AnilcanCakir\LaravelAiSdkSkills\Tools;
 
+use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Collection;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -19,12 +21,14 @@ class ListSkills implements Tool
      * @param  SkillRegistry  $registry  The skill registry instance.
      * @param  int  $maxDescriptionSkills  Maximum skills to include in description.
      * @param  string|null  $mode  The discovery mode ('lite' or 'full').
+     * @param  array<int, string>|null  $declaredSlugs  Slugs the owning agent declared; null defers to the registry.
      * @return void
      */
     public function __construct(
         protected SkillRegistry $registry,
         protected int $maxDescriptionSkills = 50,
         protected ?string $mode = null,
+        protected ?array $declaredSlugs = null,
     ) {}
 
     /**
@@ -42,7 +46,7 @@ class ListSkills implements Tool
     {
         $baseDescription = 'List all available skills that can be loaded to provide specialized capabilities. Returns a table of skills with their descriptions and current status.';
 
-        $availableSkills = $this->registry->available();
+        $availableSkills = $this->availableSkills();
 
         $skillsXml = $this->buildSkillsXml($availableSkills->take($this->maxDescriptionSkills));
 
@@ -50,9 +54,30 @@ class ListSkills implements Tool
     }
 
     /**
+     * Get the available skills this tool is allowed to reveal.
+     *
+     * Under declared-skill enforcement an undeclared skill is never named, so the model
+     * cannot learn it exists and try to load it.
+     *
+     * @return Collection<string, Skill>
+     */
+    protected function availableSkills(): Collection
+    {
+        $available = $this->registry->available();
+
+        if (! config('skills.enforce_declared', false)) {
+            return $available;
+        }
+
+        return $available->filter(
+            fn (Skill $skill, string $slug): bool => $this->registry->declares($slug, $this->declaredSlugs)
+        );
+    }
+
+    /**
      * Build XML representation of available skills.
      *
-     * @param  \Illuminate\Support\Collection  $skills  The skills to include.
+     * @param  Collection  $skills  The skills to include.
      * @return string The XML string.
      */
     protected function buildSkillsXml($skills): string
@@ -92,7 +117,7 @@ class ListSkills implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
-        $available = $this->registry->available();
+        $available = $this->availableSkills();
         $loaded = $this->registry->getLoaded();
         $filter = $request->string('filter')->value();
 

@@ -123,6 +123,25 @@ SKILLS_CACHE_STORE=file      # Use a specific cache store instead of the default
 
 Run `php artisan skills:clear` to flush the cache manually.
 
+### Load-time Authorization
+
+By default, `enforce_declared` is disabled, meaning your agent can discover and load any skill in the configured paths. When you enable `enforce_declared` in `config/skills.php`, an agent may only access skills it declares in its own `skills()` method:
+
+```php
+// config/skills.php
+'enforce_declared' => env('SKILLS_ENFORCE_DECLARED', false),
+```
+
+```dotenv
+SKILLS_ENFORCE_DECLARED=true
+```
+
+When enabled, all five surfaces respect the declared list: `list_skills` omits undeclared skills, `skill` refuses to load them, `skill_read` refuses to read their files, and `skillTools()` and `skillInstructions()` leave them out. An agent that declares nothing therefore gets nothing, so if you rely on discover-then-load, declare the candidates up front.
+
+The allowlist travels with the tools, which means they have to come from `$this->skillTools()`. A tool constructed by hand carries no agent context and refuses everything while enforcement is on.
+
+Separately, and regardless of this setting, the `skill` tool refuses a directory path the model names unless it resolves inside one of your configured `paths`. A path you write into your own `skills()` method is not affected. Note this means "must resolve inside a configured root" rather than "cannot leave `paths`": skill discovery follows symlinks, so a symlink placed inside a root still reaches its target.
+
 ## Advanced Usage
 
 ### Per-Skill Inclusion Modes
@@ -211,7 +230,7 @@ php artisan skills:clear
 
 When you use the `Skillable` trait, your agent gets these tools automatically:
 
-- `list_skills`: Returns a list of all available skills the agent can load.
+- `list_skills`: Returns every discovered skill; if `enforce_declared` is enabled in the config, only skills the agent declares in its own `skills()` method are returned.
 - `skill`: Loads the full instructions and tools for a specific skill into the conversation.
 - `skill_read`: Safely reads supplementary files (like `/docs/api.md`) from within a loaded skill's directory.
 

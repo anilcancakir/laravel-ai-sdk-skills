@@ -8,6 +8,9 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
+use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
+use App\Ai\Tools\SearchDocs;
+use Illuminate\Support\Facades\File;
 use Laravel\Ai\Tools\Request;
 use Mockery;
 
@@ -78,8 +81,64 @@ class AgentSkillsProtocolTest extends TestCase
 
         // Verify SearchDocs tool name if it exists in the app namespace as per FullWorkflowTest pattern
         if (class_exists('App\Ai\Tools\SearchDocs')) {
-            $searchDocs = new \App\Ai\Tools\SearchDocs;
+            $searchDocs = new SearchDocs;
             $this->assertEquals('search_docs', $searchDocs->name());
         }
+    }
+
+    public function test_a_skill_declared_by_path_is_allowlisted_under_its_resolved_slug(): void
+    {
+        config(['skills.enforce_declared' => true]);
+
+        $skillPath = __DIR__.'/../fixtures/skills/resolved-slug-skill';
+        File::makeDirectory($skillPath, 0755, true, true);
+        File::put($skillPath.'/SKILL.md', <<<'EOT'
+---
+name: resolved-slug-skill
+description: Declared by absolute path, asked for by slug
+---
+
+Resolved slug instructions.
+EOT
+        );
+
+        $agent = new class($skillPath)
+        {
+            use Skillable;
+
+            public function __construct(protected string $path) {}
+
+            public function skills(): iterable
+            {
+                return [$this->path];
+            }
+        };
+
+        $loader = collect($agent->skillTools())->first(
+            fn (object $tool): bool => $tool instanceof SkillLoader
+        );
+
+        // The model always asks by slug, so a path declaration has to be allowlisted by slug.
+        $allowed = (string) $loader->handle(new Request(['name' => 'resolved-slug-skill']));
+        $refused = (string) $loader->handle(new Request(['name' => 'admin-only-skill']));
+
+        $this->assertStringContainsString('Resolved slug instructions.', $allowed);
+        $this->assertStringContainsString('Skill [admin-only-skill] not found.', $refused);
+
+    }
+
+    /**
+     * Remove the temporary fixture from the shared discovery root.
+     *
+     * This runs in tearDown rather than at the end of the test because the fixture
+     * is created inside tests/fixtures/skills, which every other test discovers. A
+     * failed assertion or an interrupted run would otherwise leave it there for the
+     * rest of the suite and for the working tree.
+     */
+    protected function tearDown(): void
+    {
+        File::deleteDirectory(__DIR__.'/../fixtures/skills/resolved-slug-skill');
+
+        parent::tearDown();
     }
 }

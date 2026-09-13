@@ -43,6 +43,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Declared Skill Enforcement
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, an agent may only load, list and read the skills it declares
+    | in its own skills() method. Anything else is reported to the model as if
+    | it did not exist, so a prompt injection cannot reach an undeclared skill.
+    |
+    | Skills are contained to the configured paths either way; this only adds
+    | the per-agent allowlist on top.
+    |
+    */
+
+    'enforce_declared' => env('SKILLS_ENFORCE_DECLARED', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Skill Cache
     |--------------------------------------------------------------------------
     |
@@ -53,7 +69,9 @@ return [
     */
 
     'cache' => [
-        'enabled' => env('SKILLS_CACHE_ENABLED', ! app()->environment('local', 'testing')),
+        // Config is read during the LoadConfiguration bootstrap, before the "env" container
+        // binding exists, so the container's environment() helper is fatal once published.
+        'enabled' => env('SKILLS_CACHE_ENABLED', ! in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)),
         'store' => env('SKILLS_CACHE_STORE', null),
     ],
 ];

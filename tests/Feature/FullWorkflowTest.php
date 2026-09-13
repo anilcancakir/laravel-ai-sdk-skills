@@ -87,6 +87,7 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Feature {
     use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
     use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
     use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
+    use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
     use Mockery;
 
     class FullWorkflowTest extends TestCase
@@ -160,11 +161,11 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Feature {
 
     class TestAgent
     {
-        use \AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
+        use Skillable;
 
-        public function skillRegistry(): \AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry
+        public function skillRegistry(): SkillRegistry
         {
-            return \app(\AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry::class);
+            return \app(SkillRegistry::class);
         }
     }
 }

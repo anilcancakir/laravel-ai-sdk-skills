@@ -3,9 +3,11 @@
 namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Unit;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
+use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillReferenceReader;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Tools\Request;
 use Mockery;
 
@@ -228,6 +230,50 @@ class SkillReferenceReaderTest extends TestCase
         // Cleanup
         unlink($tempDir.'/docs/guide.md');
         rmdir($tempDir.'/docs');
+        rmdir($tempDir);
+    }
+
+    public function test_it_refuses_an_undeclared_skill_when_enforcement_enabled(): void
+    {
+        config(['skills.enforce_declared' => true]);
+        Log::spy();
+
+        $tempDir = sys_get_temp_dir().'/skill_enforce_'.uniqid();
+        mkdir($tempDir);
+        file_put_contents($tempDir.'/secret.md', 'SECRET_ADMIN_INSTRUCTIONS');
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+        $registry = new SkillRegistry($discovery);
+
+        $skill = new Skill(
+            name: 'admin-only-skill',
+            description: 'Desc',
+            instructions: 'Inst',
+            tools: [],
+
+            basePath: $tempDir
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('admin-only-skill')
+            ->andReturn($skill);
+
+        $registry->load('admin-only-skill');
+
+        $tool = new SkillReferenceReader($registry, ['safe-skill']);
+
+        $result = (string) $tool->handle(new Request([
+            'skill' => 'admin-only-skill',
+            'file' => 'secret.md',
+        ]));
+
+        // A loaded but undeclared skill must read exactly like a skill that was never loaded.
+        $this->assertStringNotContainsString('SECRET_ADMIN_INSTRUCTIONS', $result);
+        $this->assertStringContainsString('is not loaded', $result);
+        Log::shouldHaveReceived('warning')->atLeast()->once();
+
+        // Cleanup
+        unlink($tempDir.'/secret.md');
         rmdir($tempDir);
     }
 }

@@ -68,6 +68,23 @@ class SkillRegistry
     }
 
     /**
+     * Determine if a slug belongs to the caller's declared-skills allowlist.
+     *
+     * Callers reach this only after gating on [skills.enforce_declared], so a null
+     * allowlist means the caller could not say which agent it speaks for, and the
+     * answer is no. Failing closed matters here: the registry is request scoped and
+     * shared, so the alternative of holding a list on the registry itself would merge
+     * the declarations of every agent booted in the request and hand one agent
+     * another's skills.
+     *
+     * @param  array<int, string>|null  $declaredSlugs  The caller's own allowlist.
+     */
+    public function declares(string $slug, ?array $declaredSlugs = null): bool
+    {
+        return $declaredSlugs !== null && in_array($slug, $declaredSlugs, true);
+    }
+
+    /**
      * Determine if a skill is loaded by name.
      *
      * @param  string  $name  The name of the skill.
@@ -110,13 +127,14 @@ class SkillRegistry
     /**
      * Get all tools from loaded skills.
      *
+     * @param  array<int, string>|null  $declaredSlugs  Allowlist applied when enforcement is on; null allows all.
      * @return array<int, Tool>
      */
-    public function tools(): array
+    public function tools(?array $declaredSlugs = null): array
     {
         $tools = [];
 
-        foreach ($this->loaded as $skill) {
+        foreach ($this->allowedLoaded($declaredSlugs) as $skill) {
             foreach ($skill->tools as $toolClass) {
                 if (class_exists($toolClass)) {
                     $tools[] = app($toolClass);
@@ -134,8 +152,11 @@ class SkillRegistry
      *
      * In 'lite' mode, only skill name and description are returned.
      * In 'full' mode, full instructions are included.
+     *
+     * @param  string|null  $mode  Global override for the inclusion mode ('lite' or 'full').
+     * @param  array<int, string>|null  $declaredSlugs  Allowlist applied when enforcement is on; null allows all.
      */
-    public function instructions(?string $mode = null): string
+    public function instructions(?string $mode = null, ?array $declaredSlugs = null): string
     {
         $configuredMode = $this->configuredMode();
         $globalOverrideMode = null;
@@ -153,7 +174,7 @@ class SkillRegistry
 
         $instructions = '';
 
-        foreach ($this->loaded as $slug => $skill) {
+        foreach ($this->allowedLoaded($declaredSlugs) as $slug => $skill) {
             $effectiveMode = $globalOverrideMode
                 ?? ($this->loadedModes[$slug] ?? null)
                 ?? $configuredMode;
@@ -174,6 +195,25 @@ class SkillRegistry
         }
 
         return trim($instructions);
+    }
+
+    /**
+     * Get the loaded skills the caller is allowed to see.
+     *
+     * @param  array<int, string>|null  $declaredSlugs  Allowlist applied when enforcement is on.
+     * @return array<string, Skill>
+     */
+    private function allowedLoaded(?array $declaredSlugs): array
+    {
+        if (! config('skills.enforce_declared', false)) {
+            return $this->loaded;
+        }
+
+        return array_filter(
+            $this->loaded,
+            fn (string $slug): bool => $this->declares($slug, $declaredSlugs),
+            ARRAY_FILTER_USE_KEY
+        );
     }
 
     private function configuredMode(): SkillInclusionMode

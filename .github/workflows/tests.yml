@@ -14,11 +14,13 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: ['8.4']
-        laravel: ['12.*']
+        php: ['8.3', '8.4', '8.5']
+        laravel: ['12.*', '13.*']
         include:
           - laravel: 12.*
             testbench: 10.*
+          - laravel: 13.*
+            testbench: 11.*
 
     name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }}
 
@@ -52,3 +54,36 @@ jobs:
             echo "Coverage is below 80%!"
             exit 1
           fi
+
+  laravel-ai-floor:
+    runs-on: ubuntu-latest
+
+    name: laravel/ai floor (0.7.*)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip
+          coverage: pcov
+
+      - name: Pin laravel/ai to the bottom of its declared range
+        run: |
+          composer require "laravel/ai:0.7.*" --no-interaction --no-update
+          composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
+
+      - name: Assert laravel/ai actually resolved to 0.7.x
+        run: |
+          RESOLVED_VERSION=$(composer show laravel/ai --format=json | jq -r '.versions[0]' | sed 's/^v//')
+          echo "Resolved laravel/ai version: $RESOLVED_VERSION"
+          if [[ "$RESOLVED_VERSION" != 0.7.* ]]; then
+            echo "Expected laravel/ai to resolve to 0.7.*, got $RESOLVED_VERSION"
+            exit 1
+          fi
+
+      - name: Run Tests
+        run: vendor/bin/phpunit
