@@ -25,7 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Skill loaded but reported missing**: `SkillRegistry::load()` stores a skill under its resolved slug while `get()` looked it up by the raw argument, so passing a path to the `skill` tool returned "not found" while the skill sat loaded in the registry and remained readable through `skill_read`. The tool now renders from what `load()` returns.
 
 ### Notes
-- Non-breaking. Every published API, tool name and default behaviour is unchanged, and an application that does not set `enforce_declared` behaves exactly as it did in v1.1.0. The one new restriction that applies regardless is path containment, and it only affects a directory path supplied by the model.
+- **Non-breaking at the API level, but upgrading has requirements.** Every published API and tool name is unchanged and nothing you call needs editing. Three things are not "no change at all", stated plainly so you can check them before you upgrade:
+  - You need PHP 8.3 and Laravel 12 or 13. On PHP 8.2 or Laravel 11, Composer will simply never offer you this release.
+  - Path containment applies whether or not you enable `enforce_declared`. It affects only a directory path the model names, not a path you write into your agent's own `skills()` method.
+  - `SkillRegistry::tools()` and `::instructions()` each gained an optional trailing parameter. Calling them is unaffected, but a subclass that overrides either with the old signature will fatal on the signature mismatch.
 
 ## [v1.1.0](https://github.com/anilcancakir/laravel-ai-sdk-skills/releases/tag/v1.1.0) - 2026-02-22
 ### Added

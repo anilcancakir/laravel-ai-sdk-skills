@@ -228,6 +228,37 @@ EOT
         }
     }
 
+    public function test_it_refuses_when_a_configured_root_is_an_empty_string(): void
+    {
+        $outside = sys_get_temp_dir().'/skill_blank_root_'.uniqid();
+        mkdir($outside, 0755, true);
+
+        try {
+            file_put_contents($outside.'/SKILL.md', <<<'EOT'
+---
+name: blank-root-skill
+description: Reachable only if an empty configured root is treated as a real one
+---
+
+Blank root instructions.
+EOT
+            );
+
+            // realpath('') returns the working directory, so a blank entry would otherwise
+            // make the whole project tree a configured root.
+            config(['skills.paths' => ['project' => '']]);
+
+            $registry = $this->app->make(SkillRegistry::class);
+            $tool = new SkillLoader($registry);
+
+            $tool->handle(new Request(['name' => $outside]));
+
+            $this->assertFalse($registry->isLoaded('blank-root-skill'));
+        } finally {
+            $this->removeDirectory($outside);
+        }
+    }
+
     private function removeDirectory(string $path): void
     {
         if (! is_dir($path)) {

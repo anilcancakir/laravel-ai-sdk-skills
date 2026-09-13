@@ -27,11 +27,14 @@ class SkillAuthorizationTest extends TestCase
             }
         };
 
-        // Boot the declared allowlist (only safe-skill) before hitting the tool directly.
-        $agent->skillTools();
+        // Take the loader from the agent rather than building one, so the allowlist under
+        // test is this agent's declared list. A hand-built loader carries no list, which
+        // under enforcement refuses everything and would pass for the wrong reason.
+        $loader = collect($agent->skillTools())->first(
+            fn (object $tool): bool => $tool instanceof SkillLoader
+        );
 
         $registry = $this->app->make(SkillRegistry::class);
-        $loader = new SkillLoader($registry);
 
         $result = (string) $loader->handle(new Request(['name' => 'admin-only-skill']));
 
@@ -39,6 +42,43 @@ class SkillAuthorizationTest extends TestCase
         $this->assertFalse($registry->isLoaded('admin-only-skill'));
         $this->assertStringNotContainsString('SECRET_ADMIN_INSTRUCTIONS', $result);
         Log::shouldHaveReceived('warning')->atLeast()->once();
+    }
+
+    public function test_a_hand_built_loader_refuses_rather_than_serving_every_booted_agents_skills(): void
+    {
+        config(['skills.enforce_declared' => true]);
+
+        $admin = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['admin-only-skill'];
+            }
+        };
+
+        $safe = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['safe-skill'];
+            }
+        };
+
+        $admin->skillTools();
+        $safe->skillTools();
+
+        $registry = $this->app->make(SkillRegistry::class);
+
+        // A loader built outside Skillable cannot say which agent it speaks for. It must refuse
+        // rather than serve the union of every agent booted in this request, which is the shape
+        // issue #6 reported: one shared discovery directory across two trust levels.
+        $result = (string) (new SkillLoader($registry))->handle(new Request(['name' => 'admin-only-skill']));
+
+        $this->assertStringNotContainsString('SECRET_ADMIN_INSTRUCTIONS', $result);
     }
 
     public function test_skill_loader_must_refuse_absolute_path_outside_configured_roots(): void
@@ -65,7 +105,6 @@ EOT
         // Proof: the content sits in the registry today, reachable via skill_read, despite living outside every root.
         $this->assertFalse($registry->isLoaded('outside-root-skill'));
 
-        File::deleteDirectory(storage_path('temp-skills'));
     }
 
     public function test_skill_loader_must_refuse_absolute_path_when_configured_root_does_not_exist(): void
@@ -94,7 +133,6 @@ EOT
         // Proof: a missing configured root, the default fresh-install state, does not stop the bypass.
         $this->assertFalse($registry->isLoaded('fresh-install-skill'));
 
-        File::deleteDirectory(storage_path('temp-skills'));
     }
 
     public function test_skill_loader_still_loads_declared_absolute_path_skill_by_resolved_slug(): void
@@ -133,7 +171,18 @@ EOT
 
         // Regression guard: enforcement must key the allowlist off the resolved slug, not the raw declared string.
         $this->assertTrue($registry->isLoaded('declared-path-skill'));
+    }
 
+    /**
+     * Remove the temporary skill directories these tests write.
+     *
+     * This runs in tearDown rather than at the end of each test body so a failed
+     * assertion cannot leave a skill behind for the rest of the suite.
+     */
+    protected function tearDown(): void
+    {
         File::deleteDirectory(storage_path('temp-skills'));
+
+        parent::tearDown();
     }
 }

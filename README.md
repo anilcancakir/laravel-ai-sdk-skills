@@ -132,7 +132,15 @@ By default, `enforce_declared` is disabled, meaning your agent can discover and 
 'enforce_declared' => env('SKILLS_ENFORCE_DECLARED', false),
 ```
 
-When enabled, the `list_skills` tool omits undeclared skills from its output, and the `skill` tool refuses to load them, preventing prompt injection attacks that attempt to discover or load capabilities the agent was not designed to use.
+```dotenv
+SKILLS_ENFORCE_DECLARED=true
+```
+
+When enabled, all five surfaces respect the declared list: `list_skills` omits undeclared skills, `skill` refuses to load them, `skill_read` refuses to read their files, and `skillTools()` and `skillInstructions()` leave them out. An agent that declares nothing therefore gets nothing, so if you rely on discover-then-load, declare the candidates up front.
+
+The allowlist travels with the tools, which means they have to come from `$this->skillTools()`. A tool constructed by hand carries no agent context and refuses everything while enforcement is on.
+
+Separately, and regardless of this setting, the `skill` tool refuses a directory path the model names unless it resolves inside one of your configured `paths`. A path you write into your own `skills()` method is not affected. Note this means "must resolve inside a configured root" rather than "cannot leave `paths`": skill discovery follows symlinks, so a symlink placed inside a root still reaches its target.
 
 ## Advanced Usage
 

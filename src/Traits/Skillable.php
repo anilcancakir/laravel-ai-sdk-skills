@@ -195,9 +195,5 @@ trait Skillable
                 $this->declaredSkillSlugs[] = $skill->slug();
             }
         }
-
-        // Tools built outside this agent, including the ones an application wires by hand,
-        // read the allowlist back from the request scoped registry.
-        $registry->declareSlugs($this->declaredSkillSlugs);
     }
 }

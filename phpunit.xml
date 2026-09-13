@@ -22,4 +22,11 @@
             <directory>src</directory>
         </include>
     </source>
+    <php>
+        <!-- config/skills.php reads env('APP_ENV') rather than app()->environment(), because
+             published config is evaluated before the "env" container binding exists. Testbench
+             never sets the raw variable, so without this the suite would run with the skill
+             cache enabled and never exercise the uncached discovery path. -->
+        <env name="APP_ENV" value="testing"/>
+    </php>
 </phpunit>

@@ -553,8 +553,10 @@ XML;
         $registry->load('skill-a');
         $registry->load('skill-b');
 
-        // A null allowlist means no agent declared anything, so nothing is filtered.
-        $this->assertCount(2, $registry->tools());
+        // Under enforcement a null allowlist means the caller could not say which agent
+        // it speaks for, so it gets nothing. Failing closed here is what stops a tool
+        // built outside Skillable from serving the union of every agent in the request.
+        $this->assertCount(0, $registry->tools());
 
         $this->assertCount(1, $registry->tools(['skill-a']));
 

@@ -137,7 +137,10 @@ class SkillLoader implements Tool
         }
 
         foreach ((array) config('skills.paths', []) as $path) {
-            if (! is_string($path)) {
+            // An empty entry would admit everything: realpath('') returns the working
+            // directory, so a single blank string in skills.paths makes the whole
+            // project tree a configured root.
+            if (! is_string($path) || trim($path) === '') {
                 continue;
             }
 

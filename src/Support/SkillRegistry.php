@@ -27,15 +27,6 @@ class SkillRegistry
     protected array $loadedModes = [];
 
     /**
-     * Resolved slugs of the skills declared by the agents booted in this request.
-     *
-     * Null until an agent boots, which is what keeps a bare registry unrestricted.
-     *
-     * @var array<int, string>|null
-     */
-    protected ?array $declaredSlugs = null;
-
-    /**
      * Create a new skill registry instance.
      *
      * @param  SkillDiscovery  $discovery  The skill discovery instance.
@@ -77,31 +68,20 @@ class SkillRegistry
     }
 
     /**
-     * Record the resolved slugs an agent declares, so tools built outside it can enforce them.
+     * Determine if a slug belongs to the caller's declared-skills allowlist.
      *
-     * Declarations accumulate over the agents booted in this request, since the registry is
-     * request scoped and every tool built through Skillable carries its own agent's list.
+     * Callers reach this only after gating on [skills.enforce_declared], so a null
+     * allowlist means the caller could not say which agent it speaks for, and the
+     * answer is no. Failing closed matters here: the registry is request scoped and
+     * shared, so the alternative of holding a list on the registry itself would merge
+     * the declarations of every agent booted in the request and hand one agent
+     * another's skills.
      *
-     * @param  array<int, string>  $slugs  Resolved skill slugs.
-     */
-    public function declareSlugs(array $slugs): void
-    {
-        $this->declaredSlugs = array_values(array_unique(array_merge($this->declaredSlugs ?? [], $slugs)));
-    }
-
-    /**
-     * Determine if a slug belongs to the effective declared-skills allowlist.
-     *
-     * This answers the allowlist question only; callers gate it on [skills.enforce_declared].
-     * A null list means no agent declared anything, which allows every skill.
-     *
-     * @param  array<int, string>|null  $declaredSlugs  The caller's own allowlist, or null for the registry's.
+     * @param  array<int, string>|null  $declaredSlugs  The caller's own allowlist.
      */
     public function declares(string $slug, ?array $declaredSlugs = null): bool
     {
-        $allowed = $declaredSlugs ?? $this->declaredSlugs;
-
-        return $allowed === null || in_array($slug, $allowed, true);
+        return $declaredSlugs !== null && in_array($slug, $declaredSlugs, true);
     }
 
     /**
