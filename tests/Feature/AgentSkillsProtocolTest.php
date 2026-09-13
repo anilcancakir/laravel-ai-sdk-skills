@@ -125,6 +125,20 @@ EOT
         $this->assertStringContainsString('Resolved slug instructions.', $allowed);
         $this->assertStringContainsString('Skill [admin-only-skill] not found.', $refused);
 
-        File::deleteDirectory($skillPath);
+    }
+
+    /**
+     * Remove the temporary fixture from the shared discovery root.
+     *
+     * This runs in tearDown rather than at the end of the test because the fixture
+     * is created inside tests/fixtures/skills, which every other test discovers. A
+     * failed assertion or an interrupted run would otherwise leave it there for the
+     * rest of the suite and for the working tree.
+     */
+    protected function tearDown(): void
+    {
+        File::deleteDirectory(__DIR__.'/../fixtures/skills/resolved-slug-skill');
+
+        parent::tearDown();
     }
 }
