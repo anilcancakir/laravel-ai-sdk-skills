@@ -4,6 +4,7 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tools;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -17,10 +18,12 @@ class SkillLoader implements Tool
      * Create a new skill loader tool instance.
      *
      * @param  SkillRegistry  $registry  The skill registry instance.
+     * @param  array<int, string>|null  $declaredSlugs  Slugs the owning agent declared; null defers to the registry.
      * @return void
      */
     public function __construct(
         protected SkillRegistry $registry,
+        protected ?array $declaredSlugs = null,
     ) {}
 
     /**
@@ -60,9 +63,21 @@ class SkillLoader implements Tool
             return 'Error: Skill name is required.';
         }
 
-        $this->registry->load($name);
+        // Refusals answer with the plain "not found" string so the model cannot use the
+        // difference between a refusal and a miss to enumerate skills or directories.
+        if (! $this->withinConfiguredPaths($name)) {
+            Log::warning("Skill path [{$name}] resolves outside every configured skills path. Refusing to load it.");
 
-        if ($skill = $this->registry->get($name)) {
+            return "Skill [{$name}] not found.";
+        }
+
+        if (config('skills.enforce_declared', false) && ! $this->registry->declares($name, $this->declaredSlugs)) {
+            Log::warning("Skill [{$name}] was not declared by the calling agent. Refusing to load it.");
+
+            return "Skill [{$name}] not found.";
+        }
+
+        if ($skill = $this->registry->load($name)) {
             $output = sprintf(
                 "<skill name=\"%s\">\n%s\n</skill>",
                 $skill->name,
@@ -92,5 +107,51 @@ class SkillLoader implements Tool
         }
 
         return "Skill [{$name}] not found.";
+    }
+
+    /**
+     * Determine if a model-supplied skill directory sits inside a configured skills path.
+     *
+     * The model may only reach the filesystem through this tool, so a directory argument is
+     * contained here:
+     * 1. Only an existing directory is checked; a slug is resolved by discovery, which scans
+     *    the configured paths already.
+     * 2. Both sides are compared on their real path, so a symlink or a "../" segment cannot
+     *    point out of a configured root.
+     * 3. A root whose realpath() fails is skipped rather than compared. False concatenated
+     *    with the separator is "/", which prefixes every absolute path, so keeping it would
+     *    turn this check into a total bypass on a fresh install where no root exists yet.
+     * 4. The separator is appended before the prefix test, so a root does not admit a sibling
+     *    that merely starts with its name (/a/skills must not admit /a/skills-evil).
+     */
+    protected function withinConfiguredPaths(string $name): bool
+    {
+        if (! is_dir($name)) {
+            return true;
+        }
+
+        $realPath = realpath($name);
+
+        if ($realPath === false) {
+            return false;
+        }
+
+        foreach ((array) config('skills.paths', []) as $path) {
+            if (! is_string($path)) {
+                continue;
+            }
+
+            $realRoot = realpath($path);
+
+            if ($realRoot === false) {
+                continue;
+            }
+
+            if ($realPath === $realRoot || str_starts_with($realPath, $realRoot.DIRECTORY_SEPARATOR)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -513,4 +513,54 @@ XML;
         $this->assertInstanceOf($toolClassA, $tools[0]);
         $this->assertInstanceOf($toolClassB, $tools[1]);
     }
+
+    public function test_tools_and_instructions_filter_by_the_declared_allowlist()
+    {
+        config(['skills.enforce_declared' => true]);
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+
+        $toolClass = 'AnilcanCakir\LaravelAiSdkSkills\Tests\Fixtures\DeclaredOnlyTool';
+        if (! class_exists($toolClass)) {
+            eval('namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Fixtures; class DeclaredOnlyTool {}');
+        }
+
+        $declared = new Skill(
+            name: 'Skill A',
+            description: 'Declared by the agent',
+            instructions: 'Instruction A',
+            tools: [$toolClass],
+
+        );
+
+        $undeclared = new Skill(
+            name: 'Skill B',
+            description: 'Never declared',
+            instructions: 'Instruction B',
+            tools: [$toolClass],
+
+        );
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-a')
+            ->andReturn($declared);
+
+        $discovery->shouldReceive('resolve')
+            ->with('skill-b')
+            ->andReturn($undeclared);
+
+        $registry = new SkillRegistry($discovery);
+        $registry->load('skill-a');
+        $registry->load('skill-b');
+
+        // A null allowlist means no agent declared anything, so nothing is filtered.
+        $this->assertCount(2, $registry->tools());
+
+        $this->assertCount(1, $registry->tools(['skill-a']));
+
+        $instructions = $registry->instructions('full', ['skill-a']);
+
+        $this->assertStringContainsString('Instruction A', $instructions);
+        $this->assertStringNotContainsString('Instruction B', $instructions);
+    }
 }

@@ -9,6 +9,7 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Tools\Request;
 use Mockery;
 
@@ -95,8 +96,7 @@ class SkillLoaderToolTest extends TestCase
                 basePath: $tempDir
             );
 
-            $registry->shouldReceive('load')->with('test-skill');
-            $registry->shouldReceive('get')->with('test-skill')->andReturn($skill);
+            $registry->shouldReceive('load')->with('test-skill')->andReturn($skill);
 
             $tool = new SkillLoader($registry);
             $result = $tool->handle(new Request(['name' => 'test-skill']));
@@ -122,13 +122,110 @@ class SkillLoaderToolTest extends TestCase
             basePath: null
         );
 
-        $registry->shouldReceive('load')->with('test-skill');
-        $registry->shouldReceive('get')->with('test-skill')->andReturn($skill);
+        $registry->shouldReceive('load')->with('test-skill')->andReturn($skill);
 
         $tool = new SkillLoader($registry);
         $result = $tool->handle(new Request(['name' => 'test-skill']));
 
         $this->assertStringNotContainsString('<skill_references', (string) $result);
+    }
+
+    public function test_it_refuses_a_directory_that_only_string_prefixes_a_configured_root(): void
+    {
+        Log::spy();
+
+        $base = sys_get_temp_dir().'/skill_containment_'.uniqid();
+        mkdir($base.'/skills', 0755, true);
+        mkdir($base.'/skills-evil', 0755, true);
+
+        try {
+            file_put_contents($base.'/skills-evil/SKILL.md', <<<'EOT'
+---
+name: evil-skill
+description: Sits right next to a configured root
+---
+
+Evil instructions.
+EOT
+            );
+
+            // The missing root must be skipped, not treated as "/", which would admit everything.
+            config(['skills.paths' => [
+                'project' => $base.'/skills',
+                'missing' => $base.'/never-created',
+            ]]);
+
+            $registry = $this->app->make(SkillRegistry::class);
+            $tool = new SkillLoader($registry);
+
+            $tool->handle(new Request(['name' => $base.'/skills-evil']));
+
+            $this->assertFalse($registry->isLoaded('evil-skill'));
+            Log::shouldHaveReceived('warning')->atLeast()->once();
+        } finally {
+            $this->removeDirectory($base);
+        }
+    }
+
+    public function test_it_renders_a_skill_loaded_by_path_inside_a_configured_root(): void
+    {
+        $root = sys_get_temp_dir().'/skill_containment_'.uniqid();
+        mkdir($root.'/nested-skill', 0755, true);
+
+        try {
+            file_put_contents($root.'/nested-skill/SKILL.md', <<<'EOT'
+---
+name: nested-skill
+description: Lives inside a configured root
+---
+
+Nested instructions.
+EOT
+            );
+
+            // A trailing separator on the configured root must not break containment.
+            config(['skills.paths' => ['project' => $root.DIRECTORY_SEPARATOR]]);
+
+            $registry = $this->app->make(SkillRegistry::class);
+            $tool = new SkillLoader($registry);
+
+            $result = (string) $tool->handle(new Request(['name' => $root.'/nested-skill']));
+
+            $this->assertStringContainsString('<skill name="nested-skill">', $result);
+            $this->assertStringContainsString('Nested instructions.', $result);
+            $this->assertTrue($registry->isLoaded('nested-skill'));
+        } finally {
+            $this->removeDirectory($root);
+        }
+    }
+
+    public function test_it_loads_a_skill_directory_that_is_itself_a_configured_root(): void
+    {
+        $root = sys_get_temp_dir().'/skill_root_'.uniqid();
+        mkdir($root, 0755, true);
+
+        try {
+            file_put_contents($root.'/SKILL.md', <<<'EOT'
+---
+name: root-skill
+description: The configured root is the skill directory itself
+---
+
+Root instructions.
+EOT
+            );
+
+            config(['skills.paths' => ['project' => $root]]);
+
+            $registry = $this->app->make(SkillRegistry::class);
+            $tool = new SkillLoader($registry);
+
+            $tool->handle(new Request(['name' => $root]));
+
+            $this->assertTrue($registry->isLoaded('root-skill'));
+        } finally {
+            $this->removeDirectory($root);
+        }
     }
 
     private function removeDirectory(string $path): void

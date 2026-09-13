@@ -27,6 +27,15 @@ class SkillRegistry
     protected array $loadedModes = [];
 
     /**
+     * Resolved slugs of the skills declared by the agents booted in this request.
+     *
+     * Null until an agent boots, which is what keeps a bare registry unrestricted.
+     *
+     * @var array<int, string>|null
+     */
+    protected ?array $declaredSlugs = null;
+
+    /**
      * Create a new skill registry instance.
      *
      * @param  SkillDiscovery  $discovery  The skill discovery instance.
@@ -65,6 +74,34 @@ class SkillRegistry
         }
 
         return $skill;
+    }
+
+    /**
+     * Record the resolved slugs an agent declares, so tools built outside it can enforce them.
+     *
+     * Declarations accumulate over the agents booted in this request, since the registry is
+     * request scoped and every tool built through Skillable carries its own agent's list.
+     *
+     * @param  array<int, string>  $slugs  Resolved skill slugs.
+     */
+    public function declareSlugs(array $slugs): void
+    {
+        $this->declaredSlugs = array_values(array_unique(array_merge($this->declaredSlugs ?? [], $slugs)));
+    }
+
+    /**
+     * Determine if a slug belongs to the effective declared-skills allowlist.
+     *
+     * This answers the allowlist question only; callers gate it on [skills.enforce_declared].
+     * A null list means no agent declared anything, which allows every skill.
+     *
+     * @param  array<int, string>|null  $declaredSlugs  The caller's own allowlist, or null for the registry's.
+     */
+    public function declares(string $slug, ?array $declaredSlugs = null): bool
+    {
+        $allowed = $declaredSlugs ?? $this->declaredSlugs;
+
+        return $allowed === null || in_array($slug, $allowed, true);
     }
 
     /**
@@ -110,13 +147,14 @@ class SkillRegistry
     /**
      * Get all tools from loaded skills.
      *
+     * @param  array<int, string>|null  $declaredSlugs  Allowlist applied when enforcement is on; null allows all.
      * @return array<int, Tool>
      */
-    public function tools(): array
+    public function tools(?array $declaredSlugs = null): array
     {
         $tools = [];
 
-        foreach ($this->loaded as $skill) {
+        foreach ($this->allowedLoaded($declaredSlugs) as $skill) {
             foreach ($skill->tools as $toolClass) {
                 if (class_exists($toolClass)) {
                     $tools[] = app($toolClass);
@@ -134,8 +172,11 @@ class SkillRegistry
      *
      * In 'lite' mode, only skill name and description are returned.
      * In 'full' mode, full instructions are included.
+     *
+     * @param  string|null  $mode  Global override for the inclusion mode ('lite' or 'full').
+     * @param  array<int, string>|null  $declaredSlugs  Allowlist applied when enforcement is on; null allows all.
      */
-    public function instructions(?string $mode = null): string
+    public function instructions(?string $mode = null, ?array $declaredSlugs = null): string
     {
         $configuredMode = $this->configuredMode();
         $globalOverrideMode = null;
@@ -153,7 +194,7 @@ class SkillRegistry
 
         $instructions = '';
 
-        foreach ($this->loaded as $slug => $skill) {
+        foreach ($this->allowedLoaded($declaredSlugs) as $slug => $skill) {
             $effectiveMode = $globalOverrideMode
                 ?? ($this->loadedModes[$slug] ?? null)
                 ?? $configuredMode;
@@ -174,6 +215,25 @@ class SkillRegistry
         }
 
         return trim($instructions);
+    }
+
+    /**
+     * Get the loaded skills the caller is allowed to see.
+     *
+     * @param  array<int, string>|null  $declaredSlugs  Allowlist applied when enforcement is on.
+     * @return array<string, Skill>
+     */
+    private function allowedLoaded(?array $declaredSlugs): array
+    {
+        if (! config('skills.enforce_declared', false)) {
+            return $this->loaded;
+        }
+
+        return array_filter(
+            $this->loaded,
+            fn (string $slug): bool => $this->declares($slug, $declaredSlugs),
+            ARRAY_FILTER_USE_KEY
+        );
     }
 
     private function configuredMode(): SkillInclusionMode

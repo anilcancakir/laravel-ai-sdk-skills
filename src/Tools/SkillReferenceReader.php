@@ -4,14 +4,23 @@ namespace AnilcanCakir\LaravelAiSdkSkills\Tools;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
 class SkillReferenceReader implements Tool
 {
+    /**
+     * Create a new skill reference reader tool instance.
+     *
+     * @param  SkillRegistry  $registry  The skill registry instance.
+     * @param  array<int, string>|null  $declaredSlugs  Slugs the owning agent declared; null defers to the registry.
+     * @return void
+     */
     public function __construct(
         protected SkillRegistry $registry,
+        protected ?array $declaredSlugs = null,
     ) {}
 
     public function name(): string
@@ -43,6 +52,14 @@ class SkillReferenceReader implements Tool
 
         if (empty($skillName) || empty($filePath)) {
             return 'Error: Both "skill" and "file" parameters are required.';
+        }
+
+        // An undeclared skill answers exactly like an unloaded one, so the difference
+        // between the two cannot be used to probe what another agent has loaded.
+        if (config('skills.enforce_declared', false) && ! $this->registry->declares($skillName, $this->declaredSlugs)) {
+            Log::warning("Skill [{$skillName}] was not declared by the calling agent. Refusing the reference read.");
+
+            return "Error: Skill [{$skillName}] is not loaded. Load it first using the \"skill\" tool.";
         }
 
         $skill = $this->registry->get($skillName);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AnilcanCakir\LaravelAiSdkSkills\Tests\Unit;
 
 use AnilcanCakir\LaravelAiSdkSkills\Support\Skill;
+use AnilcanCakir\LaravelAiSdkSkills\Support\SkillDiscovery;
 use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
@@ -255,5 +256,46 @@ class ListSkillsToolTest extends TestCase
         $this->assertStringContainsString('<name>git-master</name>', $description);
         $this->assertStringContainsString('<description>Git operations</description>', $description);
         $this->assertStringNotContainsString('<instructions>', $description);
+    }
+
+    public function test_it_hides_undeclared_skills_when_enforcement_enabled(): void
+    {
+        // Arrange
+        config(['skills.enforce_declared' => true]);
+
+        $discovery = Mockery::mock(SkillDiscovery::class);
+        $registry = new SkillRegistry($discovery);
+
+        $declared = new Skill(
+            name: 'git-master',
+            description: 'Git operations',
+            instructions: 'Use git...',
+            tools: []
+        );
+
+        $undeclared = new Skill(
+            name: 'search-docs',
+            description: 'Search documentation',
+            instructions: 'Search docs...',
+            tools: []
+        );
+
+        $discovery->shouldReceive('discover')
+            ->andReturn(new Collection([
+                'git-master' => $declared,
+                'search-docs' => $undeclared,
+            ]));
+
+        $tool = new ListSkills($registry, declaredSlugs: ['git-master']);
+
+        // Act
+        $table = (string) $tool->handle(new Request([]));
+        $description = (string) $tool->description();
+
+        // Assert: an undeclared skill is invisible in both the table and the tool description
+        $this->assertStringContainsString('| git-master | Git operations | Available |', $table);
+        $this->assertStringNotContainsString('search-docs', $table);
+        $this->assertStringContainsString('<name>git-master</name>', $description);
+        $this->assertStringNotContainsString('<name>search-docs</name>', $description);
     }
 }
