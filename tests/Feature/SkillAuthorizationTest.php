@@ -6,6 +6,7 @@ use AnilcanCakir\LaravelAiSdkSkills\Support\SkillRegistry;
 use AnilcanCakir\LaravelAiSdkSkills\Tests\TestCase;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\ListSkills;
 use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillLoader;
+use AnilcanCakir\LaravelAiSdkSkills\Tools\SkillReferenceReader;
 use AnilcanCakir\LaravelAiSdkSkills\Traits\Skillable;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -97,6 +98,61 @@ class SkillAuthorizationTest extends TestCase
         $result = (string) (new SkillLoader($registry))->handle(new Request(['name' => 'admin-only-skill']));
 
         $this->assertStringNotContainsString('SECRET_ADMIN_INSTRUCTIONS', $result);
+    }
+
+    public function test_an_agents_own_tools_refuse_a_skill_another_agent_already_loaded(): void
+    {
+        config(['skills.enforce_declared' => true]);
+
+        $admin = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['admin-only-skill'];
+            }
+        };
+
+        $customer = new class
+        {
+            use Skillable;
+
+            public function skills(): iterable
+            {
+                return ['safe-skill'];
+            }
+        };
+
+        // Issue #6's two-tier shape: the developer agent boots first in the same request, so
+        // admin-only-skill already sits in the shared registry when the customer agent asks.
+        $admin->skillTools();
+        $tools = collect($customer->skillTools());
+
+        $registry = $this->app->make(SkillRegistry::class);
+        $this->assertTrue($registry->isLoaded('admin-only-skill'));
+
+        $list = $tools->first(fn (object $tool): bool => $tool instanceof ListSkills);
+        $loader = $tools->first(fn (object $tool): bool => $tool instanceof SkillLoader);
+        $reader = $tools->first(fn (object $tool): bool => $tool instanceof SkillReferenceReader);
+
+        $this->assertStringNotContainsString('admin-only-skill', (string) $list->description());
+        $this->assertStringNotContainsString('admin-only-skill', (string) $list->handle(new Request([])));
+        $this->assertStringNotContainsString(
+            'SECRET_ADMIN_INSTRUCTIONS',
+            (string) $loader->handle(new Request(['name' => 'admin-only-skill']))
+        );
+        $this->assertStringNotContainsString(
+            'SECRET_ADMIN_INSTRUCTIONS',
+            (string) $reader->handle(new Request(['skill' => 'admin-only-skill', 'file' => 'SKILL.md']))
+        );
+
+        // The declared skill still works through the same tools, so the refusals above are the allowlist, not a broken tool.
+        $this->assertStringContainsString('safe-skill', (string) $list->description());
+        $this->assertStringContainsString(
+            'Nothing sensitive lives here',
+            (string) $loader->handle(new Request(['name' => 'safe-skill']))
+        );
     }
 
     public function test_skill_loader_must_refuse_absolute_path_outside_configured_roots(): void
